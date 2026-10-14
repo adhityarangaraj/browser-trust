@@ -39,7 +39,10 @@ describe('analyze', () => {
       id: 'bad.rule',
       description: 'no evidence',
       evaluate: () => [
-        { ruleId: 'bad.rule', title: 't', explanation: 'e', severity: 'low', confidence: 1, eventIds: [] },
+        {
+          id: 'bad', ruleId: 'bad.rule', title: 't', category: 'communication', explanation: 'e', severity: 'low',
+          eventIds: [], eventTimestamps: [], evidenceStrength: 'direct-observation', limitations: [], timestamp: 1,
+        },
       ],
     };
     expect(() => analyze([rule], [make('a', 1)])).toThrow(/without supporting events/);

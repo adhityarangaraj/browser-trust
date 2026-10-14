@@ -8,7 +8,7 @@ export interface SenderInfo {
   frameId?: number;
 }
 
-export type EventListener = (event: BrowserTrustEvent) => void;
+export type EventListener = (event: BrowserTrustEvent) => unknown | Promise<unknown>;
 
 /**
  * The single path every event takes: validate/normalize, store, notify.
@@ -32,7 +32,7 @@ export class EventPipeline {
     await this.store.append(event);
     for (const listener of this.listeners) {
       try {
-        listener(event);
+        await listener(event);
       } catch (error) {
         console.error('BrowserTrust: event listener failed', error);
       }

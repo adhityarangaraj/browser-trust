@@ -4,6 +4,9 @@
  * chrome.storage and listeners are registered synchronously at the top level.
  */
 import { collectors } from '../collectors';
+import { rules } from '../analysis/rules';
+import { connectAnalysis } from '../analysis/service';
+import { FindingStore } from '../analysis/store';
 import {
   getGrantedOrigins,
   isContentScriptRegistered,
@@ -16,10 +19,13 @@ import type { Request, StateSnapshot } from '../shared/messages';
 import { CollectorManager } from './collector-manager';
 
 const store = new EventStore(chromeStorageAdapter);
+const findingStore = new FindingStore(chromeStorageAdapter);
 const pipeline = new EventPipeline(store);
 const collectorManager = new CollectorManager(collectors, async (event) => {
   await pipeline.emit(event);
 });
+
+connectAnalysis(pipeline, store, findingStore, rules);
 
 // Listeners must be registered synchronously so Chrome can wake the worker for them.
 collectorManager.attachAll();
@@ -83,8 +89,11 @@ async function handle(request: Request, sender: chrome.runtime.MessageSender): P
     }
     case 'list-events':
       return store.list(request.limit);
+    case 'list-findings':
+      return findingStore.list(request.limit);
     case 'clear-events':
       await store.clear();
+      await findingStore.clear();
       return null;
     default:
       throw new Error(`Unknown request: ${(request as { type: string }).type}`);

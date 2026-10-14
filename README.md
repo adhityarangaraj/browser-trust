@@ -1,94 +1,101 @@
 # BrowserTrust
 
-BrowserTrust is a standalone Chrome Manifest V3 extension that records metadata about selected website activity and shows it in the popup. It is general-purpose: the local test site is only a fixture and is not imported by or required by the extension.
+BrowserTrust is a standalone Chrome Manifest V3 extension that records selected website activity, tracks observed network destinations, and presents deterministic evidence-backed findings locally. The local test site is only a fixture; extension code does not import or depend on it.
 
-**Status: Phase 2 implementation.** Collection, local event storage, and popup display are implemented and have unit coverage. End-to-end behavior still needs a manual Chrome/Chromium run; see [Verification](#verification).
+**Status: Phase 3 implementation.** The event pipeline, deterministic analysis, local findings store, destination summary, and popup assessment are implemented. A real Chrome demonstration has not yet been verified in this workspace; see [Verification](#verification).
 
-## Stack and requirements
+## Requirements and commands
 
 - Chrome or Chromium 111 or newer
 - Node.js 20 or newer and npm
-- TypeScript, esbuild, Vitest, and Node's built-in test runner; no runtime dependency is shipped with the extension
-- Events are stored locally in `chrome.storage.local`; there is no extension backend or cloud service
-
-## Build and load
+- TypeScript, esbuild, Vitest, jsdom for DOM tests, and Node's built-in test runner
+- No extension backend, database, cloud service, or remote analysis
 
 ```bash
-npm install
+npm ci
 npm run typecheck
 npm test
 npm run build
 npm run check
 ```
 
-In Chrome, open `chrome://extensions`, enable Developer mode, select **Load unpacked**, and choose the generated `dist/` directory. After rebuilding, reload the extension from that page.
+To load the extension, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select the generated `dist/` directory. After each build, reload the extension from that page.
 
-## Permissions and site access
+## Permissions and coverage
 
 | Permission | Kind | Purpose |
 | --- | --- | --- |
-| `storage` | Required | Store settings and the bounded local event list. |
-| `scripting` | Required | Register content scripts on origins the user grants. |
-| `activeTab` | Required | Read the active page URL in the popup. |
-| `webRequest` | Optional | Collect request metadata. The popup offers a user-initiated grant. |
-| `http://*/*`, `https://*/*` | Optional host permissions | User-controlled site access, requested per site or for all websites. |
+| `storage` | Required | Store settings, up to 1,000 events, and up to 500 findings locally. |
+| `scripting` | Required | Register isolated and MAIN-world scripts for permitted origins. |
+| `activeTab` | Required | Read the current page in the popup. |
+| `webRequest` | Optional | Observe browser request metadata; grant from the popup. |
+| `http://*/*`, `https://*/*` | Optional host permissions | User-controlled site access, requested per site or for all HTTP/HTTPS sites. |
 
-Monitoring is enabled by default, but nothing is observed until the user grants host access. The popup can grant or remove access for the current site, grant both optional host patterns for all sites, pause monitoring, and request the optional `webRequest` permission. Coverage follows the host permissions actually granted. Granting only one site may hide requests to other hosts.
+Monitoring is enabled by default, but BrowserTrust observes no site until host access is granted. The popup can grant or remove current-site access, allow all HTTP and HTTPS sites, pause monitoring, and grant `webRequest`. With only one site allowed, requests to other hosts may be invisible. Incomplete access or fewer than three observations including a network event is reported as **Insufficient evidence**.
 
-## What is observed
+## What BrowserTrust observes
 
-- **Network requests:** `chrome.webRequest` records URL path (without query or fragment), method, resource type, source/initiator metadata, and query presence/count. It does not read headers, request bodies, or response bodies. This is labelled `extension-api` evidence.
-- **Page lifecycle, DOM, and forms:** the isolated content script reports page load, added script/iframe/form elements, form field edits, and form submissions. It records structure and metadata only, never field values or names.
-- **Selected page API calls:** a MAIN-world hook reports calls through wrapped fetch, XHR, beacon, WebSocket, Web Storage methods, cookie access, clipboard, geolocation, media capture, and scripted form submission entry points. These are labelled `main-world-hook` evidence and relayed as untrusted input through the content script.
-- **Popup:** shows recent stored events with their source, destination when known, evidence mechanism/collector, and provenance. The store is a 1,000-event ring buffer; old events are dropped first.
+- **Browser network metadata:** the `webRequest` collector records destination host and path (query and fragment removed), method, resource type, source context, and whether query parameters existed and how many. It listens before the response, so HTTP status is not available. It does not read headers or request/response bodies. Evidence is labelled `extension-api`.
+- **Page activity:** isolated observers report page load, added script/iframe/form elements, field edits, and form submission. They store structure and metadata, never field names or values.
+- **Selected page API calls:** MAIN-world wrappers report calls through fetch, XHR, beacon, WebSocket, Web Storage methods, cookies, clipboard, geolocation, media capture, and scripted form submission entry points. The relay treats page-world messages as untrusted, limits their size/rate, and labels them `main-world-hook`.
+- **Event processing:** all events pass through `EventPipeline`, which validates and normalizes them before storage. Content event source identity is derived from the browser message sender. Event storage is a local 1,000-event ring buffer.
+- **Destinations:** the popup groups network observations by hostname and shows observed methods, source page origins, evidence mechanisms, and latest observation time. Counts are observations, not deduplicated unique requests. No HTTP response status is currently collected.
 
-All event writes pass through the background `EventPipeline`, which validates and normalizes input before storage. Content event source identity comes from the browser message sender. The page and MAIN-world messages are untrusted; the hook relay applies size and rate limits, and the background validates events again.
+## Deterministic findings
 
-There are no active detection rules or explanations yet. The analysis types and engine are not wired into the live pipeline. Current collection produces observed events; the UI includes provenance so future inferred events can be distinguished.
+Analysis runs locally after each validated event has been stored. Findings are persisted in `chrome.storage.local`, bounded to the latest 500, and deduplicated by stable rule/event IDs. The popup shows supporting event IDs and timestamps, source page, destination when available, evidence strength, and limitations.
 
-## Local test site and collector
+| Rule | Trigger | What it does not establish |
+| --- | --- | --- |
+| Form activity followed by network | A browser-trusted form submit followed within 30 seconds by a browser-observed request from the same tab and page origin, with matching method and destination when those fields exist. | It does not show that form values were sent. The request payload is not collected. |
+| Sensitive capability call | A reported geolocation, clipboard-read, or media-capture API invocation. | It does not prove permission was granted or the API succeeded. Page-world hook messages can be forged or suppressed by the page. |
+| Capability call followed by network | A supported capability call followed within 15 seconds by browser-observed network metadata in the same tab and page origin. | This is temporal association only; it does not prove causation or data transmission. |
+| Repeated cross-origin POST pattern | At least three browser-observed cross-origin POST requests to the same host in 60 seconds from the same tab and page origin. | Repetition alone does not establish malicious intent or reveal request contents. |
 
-The fixture uses fixed synthetic values only and binds to loopback. It has no dependencies beyond Node.js and does not send data to external hosts.
+These rules produce review findings, not a verdict that a website is safe or malicious. Ordinary external GET requests do not trigger the repeated-POST rule. No arbitrary risk score or confidence percentage is used. The analysis engine runs incrementally against prior stored events; errors are logged and do not reject an already-stored event.
+
+## Assessment and popup
+
+The popup shows the active hostname and permission coverage, an evidence-based assessment, event/network/finding counts, expandable findings, destination groups, and a recent event timeline. **Refresh** reloads stored state; **Clear activity** clears stored events and findings.
+
+Assessment states:
+
+- **Insufficient evidence:** monitoring is off, site access or required permissions are missing, page scripts are not registered, or fewer than three observations including a network event exist for the active tab.
+- **No suspicious activity observed:** monitoring and coverage checks pass, sufficient activity exists, and no configured rule matched. This is not proof the site is safe.
+- **Review recommended:** one or more current findings matched a review rule.
+- **Suspicious activity detected:** reserved for a high-severity finding supported by evidence. Current rules do not assign high severity, so they produce review recommendations instead.
+
+All event-derived text is rendered with DOM text nodes/`textContent`. The popup does not display mock findings, fabricated charts, or a security score.
+
+## Repeatable local demo
+
+Start the loopback-only synthetic site and collector:
 
 ```bash
 npm run testbed
 ```
 
-Open <http://127.0.0.1:4173/>. Grant BrowserTrust access to that site in the popup and, for network collector coverage, grant `webRequest`. Use the buttons to:
+Then:
 
-1. Trigger synthetic form input events and submit the fixed synthetic form; the page observer sees interaction/submission and the page hook reports the local POST.
-2. Write a fixed synthetic value with `localStorage.setItem`.
-3. Send the synthetic form payload to the local `/collect` endpoint.
+1. Build and load `dist/` in Chrome/Chromium.
+2. Open <http://127.0.0.1:4173/>. Grant BrowserTrust access to this site and grant optional `webRequest` from the popup.
+3. Reload the testbed tab so the newly registered scripts run on it.
+4. Trigger synthetic form input, write the fixed local-storage sample, and submit the fixed synthetic form.
+5. Reopen the popup. The activity should include form, storage, page-hook request, and browser network observations. The form/network rule should produce a **Review recommended** finding with both supporting events and explicit payload/causation limitations.
+6. Inspect the destination group and expand the finding. Use **Clear activity** to reset BrowserTrust's event and finding stores before repeating.
 
-The server accepts only the exact fixture payload, enforces a small body limit, and logs only that known synthetic payload. Stop it with Ctrl+C. Test the server without external dependencies using `node --test testbed/server-test.mjs` (also included in `npm test`).
+The testbed accepts only its fixed synthetic JSON payload, enforces a small request-body limit, binds to `127.0.0.1`, and logs only the known synthetic values. It sends no data to external destinations. Test the server with `node --test testbed/server-test.mjs`; `npm test` includes this test after Vitest. Stop the server with Ctrl+C.
 
-After using the fixture, reopen the extension popup to inspect the collected events and evidence labels.
+## Limitations
 
-The fixture is not part of product logic. There are no testbed hostnames or endpoint assumptions in `src/`.
-
-## Architecture
-
-| Area | Location | Role |
-| --- | --- | --- |
-| Service worker and routing | `src/background/` | Lifecycle, message trust checks, collector lifecycle. |
-| Background collection | `src/collectors/` | `webRequest` metadata collector and registry. |
-| Page collection | `src/content/`, `src/page-hooks/` | Isolated observers, MAIN-world API wrappers, untrusted hook relay. |
-| Event processing | `src/core/` | Validation/normalization, bounded local store, single event pipeline. |
-| Settings and access | `src/config/` | Monitoring switch, optional host grants, dynamic script registration. |
-| Popup | `src/popup/` | Site access and monitoring controls, collector state, recent events. |
-| Test fixture | `testbed/` | Standalone local demo page and built-in Node HTTP server; never imported by extension code. |
-
-## Limitations and unsupported contexts
-
-- Observation only covers sites the user grants and browser contexts where Chrome permits extension scripts.
-- `webRequest` visibility depends on optional permission, host access, and Chrome's API behavior. It records metadata only.
-- MAIN-world wrappers see calls through wrapped entry points. A page can bypass or tamper with them, including by using other execution contexts. Storage property-style access is not covered.
-- API-call reports show that a call was attempted, not that clipboard, geolocation, camera, microphone, screen capture, or a network operation succeeded.
-- Form interaction observations do not prove what data was transmitted. A form event followed by a request is not proof that the request carried the form values.
-- Other extensions cannot generally be inspected directly. BrowserTrust may observe some page effects but cannot comprehensively monitor another extension.
-- Browser-internal pages, extension pages, the Chrome Web Store, `file:` pages, and other restricted contexts are unsupported. Incognito requires the user to allow the extension there.
-- There is no event correlation, rule-based finding generation, AI analysis, or guarantee of complete visibility.
+- BrowserTrust only observes sites with user-granted host access and contexts where Chrome allows extension scripts. Restricted browser pages, extension pages, the Chrome Web Store, and `file:` pages are unsupported; Incognito requires enabling the extension there.
+- `webRequest` coverage depends on optional permission, host permissions, and Chrome's API behavior. Service-worker, browser-internal, and other restricted traffic may not be visible.
+- MAIN-world wrappers see selected calls through wrapped entry points. A page may bypass/tamper with them or use another execution context. Hook events are page-reported and untrusted.
+- Storage wrappers cover method calls; property-style storage access may not be observed. API-call reports do not prove success for clipboard, geolocation, camera, microphone, or screen capture.
+- Form events and later requests are not proof that form data was transmitted. BrowserTrust never collects form values, raw storage/cookie values, clipboard contents, or network bodies.
+- BrowserTrust cannot comprehensively inspect another extension's internal behavior.
+- Findings are deterministic heuristics with explicit evidence and limitations. No event correlation can prove causation when only timing and metadata are available.
 
 ## Verification
 
-Unit and server tests, type checks, and builds are automated. A successful local test run does not prove Chrome permission prompts, dynamic registration, live event delivery, or popup display all work together. Manual Chrome/Chromium verification must be recorded separately; do not treat the test fixture as proof of universal site coverage.
+Automated type, unit, testbed, and build commands are available above. A passing build or unit suite does not prove Chrome permission prompts, dynamic registration, event delivery, or popup behavior work together. Manual Chrome verification must include the local demo, monitoring-disabled state, missing-permission state, empty state, and at least one permitted ordinary website before Phase 3 is called demo-ready.

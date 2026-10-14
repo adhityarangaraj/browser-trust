@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { EventPipeline } from '../src/core/pipeline';
 import { EventStore, type StorageAdapter } from '../src/core/store';
 
@@ -35,5 +35,19 @@ describe('content event pipeline', () => {
   it('rejects malformed page input before it reaches storage', async () => {
     const pipeline = new EventPipeline(memoryStore());
     await expect(pipeline.ingestFromContent({ action: 'bad action' }, { url: 'https://shop.example/' })).rejects.toThrow();
+  });
+
+  it('keeps a stored event when an analysis subscriber fails', async () => {
+    const store = memoryStore();
+    const pipeline = new EventPipeline(store, { newId: () => 'persisted', now: () => 5 });
+    pipeline.subscribe(() => { throw new Error('analysis failure'); });
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await pipeline.ingestFromContent({
+      category: 'page', action: 'page.loaded',
+      evidence: { collector: 'page.lifecycle', mechanism: 'content-script', details: {} },
+      provenance: 'observed',
+    }, { url: 'https://shop.example/' });
+    expect(await store.count()).toBe(1);
+    error.mockRestore();
   });
 });

@@ -53,6 +53,18 @@ describe('EventStore', () => {
     await store.clear();
     expect(await store.count()).toBe(0);
   });
+
+  it('ignores malformed persisted entries before listing or extending the store', async () => {
+    const values = new Map<string, unknown>([['bt.events', [{ id: 'corrupt' }]]]);
+    const adapter: StorageAdapter = {
+      async get<T>(key: string) { return values.get(key) as T | undefined; },
+      async set(key, value) { values.set(key, value); },
+    };
+    const store = new EventStore(adapter);
+    expect(await store.list()).toEqual([]);
+    await store.append(createEvent(input, { newId: () => 'valid' }));
+    expect((await store.list()).map((item) => item.id)).toEqual(['valid']);
+  });
 });
 
 describe('EventPipeline.ingestFromContent', () => {

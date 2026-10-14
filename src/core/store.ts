@@ -1,4 +1,5 @@
 import type { BrowserTrustEvent } from '../shared/types';
+import { validateEvent } from './normalize';
 
 /** Minimal key-value storage so the store can be tested without a browser. */
 export interface StorageAdapter {
@@ -60,8 +61,12 @@ export class EventStore {
   }
 
   private async read(): Promise<BrowserTrustEvent[]> {
-    const stored = await this.adapter.get<BrowserTrustEvent[]>(EVENTS_KEY);
-    return Array.isArray(stored) ? [...stored] : [];
+    const stored = await this.adapter.get<unknown>(EVENTS_KEY);
+    if (!Array.isArray(stored)) return [];
+    return stored.flatMap((value) => {
+      const result = validateEvent(value);
+      return result.ok ? [result.event] : [];
+    });
   }
 
   // Serializes read-modify-write cycles; a failed task does not break the chain.

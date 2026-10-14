@@ -1,6 +1,7 @@
 import type { Settings } from '../config/settings';
 import type { CollectorStatus } from '../collectors/types';
 import type { BrowserTrustEvent } from './types';
+import type { Finding } from '../analysis/types';
 
 export interface StateSnapshot {
   settings: Settings;
@@ -23,6 +24,7 @@ export interface MessageMap {
     request: { type: 'list-events'; limit?: number };
     response: BrowserTrustEvent[];
   };
+  'list-findings': { request: { type: 'list-findings'; limit?: number }; response: Finding[] };
   'clear-events': { request: { type: 'clear-events' }; response: null };
   /** Content scripts only. The event is untrusted and is validated in the background. */
   'ingest-event': { request: { type: 'ingest-event'; event: unknown }; response: null };

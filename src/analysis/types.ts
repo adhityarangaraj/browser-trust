@@ -1,15 +1,28 @@
 import type { BrowserTrustEvent, Severity } from '../shared/types';
 
+export type FindingCategory = 'communication' | 'capability';
+export type EvidenceStrength = 'direct-observation' | 'temporal-association' | 'repeated-pattern';
+
 /** A conclusion drawn from events. Always inferred, always traceable to evidence. */
 export interface Finding {
+  /** Deterministic from the rule and supporting event IDs. */
+  id: string;
   ruleId: string;
   title: string;
+  category: FindingCategory;
   /** Plain-language explanation of what happened and why it may matter. */
   explanation: string;
   severity: Severity;
-  confidence: number;
   /** Events that support this finding. Must be non-empty. */
   eventIds: string[];
+  /** Timestamps aligned with eventIds. */
+  eventTimestamps: number[];
+  sourceOrigin?: string;
+  destinationHost?: string;
+  evidenceStrength: EvidenceStrength;
+  limitations: string[];
+  /** Time this finding was derived, using the latest supporting event. */
+  timestamp: number;
 }
 
 /** A deterministic check over an event and the events before it. */

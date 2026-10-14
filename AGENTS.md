@@ -8,7 +8,7 @@ Guidance for AI agents and contributors working on BrowserTrust.
 
 BrowserTrust is a standalone, general-purpose Chrome Manifest V3 extension for observing and explaining selected website behavior. Do not integrate with, depend on, or shape product behavior around Redact Agent, uBlock Origin, or another extension. `testbed/` is a fixture only; extension code must never import or depend on it. Do not claim a capability works unless code observes it and tests or a documented manual check support the claim.
 
-Phase 2 covers metadata collection, page observers and selected MAIN-world hooks, local event processing/storage, the popup, and the isolated local testbed. Detection rules, findings, correlation, and AI analysis are not live features.
+Phase 3 adds deterministic local analysis, persisted evidence-backed findings, destination summaries, and a coverage-aware popup assessment to the Phase 2 collection pipeline. AI analysis is out of scope. A real-browser demo must not be called verified unless it was run in Chrome/Chromium.
 
 ## Architecture
 
@@ -19,7 +19,7 @@ Phase 2 covers metadata collection, page observers and selected MAIN-world hooks
 | Page event sources | `src/content/` observers and bootstrap | isolated content script |
 | Selected page API wrappers | `src/page-hooks/` | MAIN world |
 | Validation, storage, ingestion | `src/core/` | service worker |
-| Analysis types/engine | `src/analysis/` | not wired into live collection |
+| Deterministic rules, findings, assessment | `src/analysis/` | service worker/popup pure logic |
 | Settings and site access | `src/config/` | extension contexts |
 | UI | `src/popup/` | popup |
 | Schema and messages | `src/shared/` | shared |
@@ -28,6 +28,11 @@ Phase 2 covers metadata collection, page observers and selected MAIN-world hooks
 Entry points are bundled by `scripts/build.mjs`: `src/background/index.ts` to `background.js` (ESM), `src/content/index.ts` to `content.js` (IIFE), `src/page-hooks/index.ts` to `page-hook.js` (IIFE), and `src/popup/popup.ts` to `popup.js` (IIFE). Static extension files are copied into `dist/`.
 
 **All events go through `EventPipeline`** (`emit` for collectors, `ingestFromContent` for content scripts). No other module writes events to storage.
+
+- `connectAnalysis` subscribes to the same pipeline, evaluates newly stored events against prior history, and writes stable-ID findings through the bounded local `FindingStore`. Analysis errors must not reject a stored event.
+- Findings cite event IDs and timestamps, describe their evidence strength, and carry limitations. Never convert a temporal sequence into a claim about transmitted values or causation.
+- Destination summaries group observations without deduplicating requests unless a reliable request identifier exists. Show whether evidence came from browser metadata or a page hook; do not show HTTP status unless a collector actually has it.
+- Assessment must distinguish insufficient coverage from a clean observation period. Never label a site safe based only on absent findings.
 
 ## Conventions
 
@@ -54,6 +59,7 @@ Entry points are bundled by `scripts/build.mjs`: `src/background/index.ts` to `b
 - Background sources implement `Collector`, register in `src/collectors/index.ts`, document/request optional permissions through the popup, and emit via `CollectorContext`.
 - Page sources implement `ContentObserver`, register in `src/content/observers/index.ts`, and emit `ContentEventInput` only.
 - MAIN-world hooks register in `syncContentScripts` at `document_start`; relay as untrusted input through the isolated script. Document bypass limits.
-- Future rules must cite supporting event IDs and be explicitly wired into analysis. Inferred events must set `provenance: 'inferred'` and `relatedEventIds`; never rewrite observed events.
+- Rules must cite supporting event IDs and timestamps, use explainable bounds, and state what their evidence cannot establish. Avoid noisy rules that flag ordinary external requests.
+- Inferred events must set `provenance: 'inferred'` and `relatedEventIds`; never rewrite observed events.
 - Keep testbed fixtures in `testbed/`. The extension must never import testbed files or encode its host/port as product behavior.
 - If message types change, update `src/shared/messages.ts` and sender checks in `src/background/index.ts`.

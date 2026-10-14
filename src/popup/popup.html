@@ -7,40 +7,69 @@
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <header>
-      <h1>BrowserTrust</h1>
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">B</span><div><h1>BrowserTrust</h1><p>Local activity monitor</p></div></div>
       <label class="switch" title="Turn monitoring on or off">
-        <input type="checkbox" id="monitoring-toggle" />
+        <input type="checkbox" id="monitoring-toggle" aria-label="Monitoring enabled" />
         <span class="slider"></span>
       </label>
     </header>
-    <p id="monitoring-status" class="status" aria-live="polite">Loading…</p>
 
-    <section>
-      <h2>This site</h2>
-      <p id="site-status" class="muted"></p>
-      <div class="actions">
-        <button id="allow-site" hidden></button>
-        <button id="remove-site" class="secondary" hidden>Remove access</button>
-        <button id="allow-all" class="secondary" hidden>Allow all websites…</button>
+    <div id="error-box" class="notice error" role="alert" hidden></div>
+    <p id="monitoring-status" class="monitoring-status" aria-live="polite">Loading status…</p>
+
+    <main>
+      <section class="assessment-card" id="assessment-card" data-state="insufficient-evidence" aria-live="polite">
+        <p class="eyebrow">Current assessment</p>
+        <h2 id="assessment-title">Loading…</h2>
+        <p id="assessment-explanation">Checking monitoring coverage and recent activity.</p>
+      </section>
+
+      <section class="coverage-section">
+        <div class="section-heading"><h2>Coverage</h2><span id="site-host" class="host-pill">No page</span></div>
+        <p id="site-status" class="muted">Checking this page…</p>
+        <div class="actions">
+          <button id="allow-site" hidden></button>
+          <button id="remove-site" class="secondary" hidden>Remove site access</button>
+          <button id="allow-all" class="secondary" hidden>Allow all websites</button>
+        </div>
+        <ul id="collectors-list" class="collector-list"></ul>
+        <button id="enable-permissions" class="secondary" hidden>Grant optional permissions</button>
+      </section>
+
+      <section class="summary-grid" aria-label="Activity summary">
+        <div><strong id="event-count">0</strong><span>observations</span></div>
+        <div><strong id="network-count">0</strong><span>network</span></div>
+        <div><strong id="finding-count">0</strong><span>findings</span></div>
+      </section>
+
+      <section>
+        <div class="section-heading"><h2>Findings</h2></div>
+        <p id="findings-empty" class="empty muted">No findings for this page.</p>
+        <ul id="findings-list" class="stack-list"></ul>
+      </section>
+
+      <section>
+        <div class="section-heading"><h2>Destinations</h2></div>
+        <p id="destinations-empty" class="empty muted">No network destinations observed for this page.</p>
+        <ul id="destinations-list" class="stack-list"></ul>
+      </section>
+
+      <section>
+        <div class="section-heading"><h2>Recent activity</h2></div>
+        <p id="events-empty" class="empty muted">No activity observed yet.</p>
+        <ol id="events-list" class="timeline"></ol>
+      </section>
+    </main>
+
+    <footer>
+      <p>Evidence is limited to granted access and observed browser APIs. No finding is not proof of safety.</p>
+      <div class="actions footer-actions">
+        <button id="refresh" class="secondary">Refresh</button>
+        <button id="clear-events" class="quiet-danger">Clear activity</button>
       </div>
-    </section>
-
-    <section>
-      <h2>Collectors</h2>
-      <ul id="collectors-list"></ul>
-      <p id="collectors-hint" class="muted"></p>
-      <div class="actions">
-        <button id="enable-permissions" hidden>Grant required permission</button>
-      </div>
-    </section>
-
-    <section>
-      <h2>Events</h2>
-      <p id="events-summary" class="muted"></p>
-      <ul id="events-list"></ul>
-      <button id="clear-events" class="secondary" hidden>Clear stored events</button>
-    </section>
+      <p id="refresh-status" class="muted" role="status" aria-live="polite"></p>
+    </footer>
 
     <script src="popup.js"></script>
   </body>

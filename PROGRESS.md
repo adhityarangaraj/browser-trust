@@ -1,28 +1,30 @@
 # Progress
 
-## Phase 2 implementation checkpoint
+## Phase 3 implementation checkpoint
 
-Implemented:
+Implemented in the existing Phase 2 architecture:
 
-- MV3 extension foundation, dynamic optional host access, monitoring switch, collector lifecycle, validated event pipeline, local 1,000-event ring buffer, and popup event display.
-- Metadata-only `webRequest` collector with optional permission state and retry after permission registration failures.
-- Isolated page/DOM/form observers and MAIN-world hooks for selected page APIs, relayed as untrusted events.
-- Popup activity rows identify evidence mechanism, collector, and provenance. Permission requests use the current popup page snapshot and remain in the click handler's user-gesture context.
-- Separate `testbed/` demo page and built-in Node HTTP collector. It binds to `127.0.0.1`, exercises synthetic form input/submission and storage, accepts one exact synthetic payload, limits request size, and logs no arbitrary request data. Extension sources do not import testbed files or contain its host/port.
-- README, this file, manifest description, and agent guidance updated to match the implementation. `AGENTS.md` instructs future agents to read `sol.md` before planning or implementation.
-
-Not implemented (outside this Phase 2 completion): live detection rules/findings, correlation, explanations, or AI analysis. The analysis engine is not wired into the event pipeline.
+- Connected deterministic analysis to the shared event pipeline and added bounded, locally persisted findings with stable IDs and duplicate prevention.
+- Added explainable findings for trusted form activity followed by browser-observed requests, selected sensitive API calls, capability-call/request temporal relationships, and repeated cross-origin POST observations.
+- Findings include supporting event IDs and timestamps, source/destination where available, evidence strength, and explicit limitations. Request bodies and sensitive field values are not collected.
+- Added grouped destination summaries that retain observation counts and label browser metadata versus page-hook evidence.
+- Reworked the popup around monitoring and permission coverage, evidence-based assessment states, event/network/finding counts, expandable evidence, destinations, and recent activity.
+- Kept the product general-purpose; the loopback testbed remains separate from extension source code.
+- Updated README and agent guidance. `AGENTS.md` explicitly requires reading `sol.md` before planning or implementation.
 
 ## Verification in this workspace
 
-- `npm.cmd run typecheck`: passed after the implementation changes.
-- `node --test testbed/server-test.mjs`: passed, 5/5 tests, including invalid and oversized payload rejection.
-- `npm.cmd run build`: passed and generated the expected extension bundles in ignored `dist/`.
-- `npm.cmd test`: 56 tests passed; two DOM-dependent test files could not start because `jsdom` is declared but missing from the installed `node_modules`. No dependencies were installed in this workspace.
-- A clean `npm run check` is not yet verified because the Vitest step is blocked by the missing `jsdom` installation. Re-run after dependencies are installed.
-- Manual Chrome/Chromium checks of permission prompts, dynamic script registration, live event delivery, and popup display have not been performed.
+- `npm.cmd run typecheck`: passed.
+- `vitest run --maxWorkers=1`: passed, 17 files and 89 tests. The default highly parallel run hit a timeout in the DOM mutation-cap test; the single-worker run passed. The package test script now uses one worker for repeatable execution.
+- `node --test testbed/server-test.mjs`: passed, 5/5 tests.
+- `npm.cmd run build`: passed and generated `dist/` bundles.
+- `npm.cmd run check` after the script update: passed end to end (typecheck, all 89 Vitest tests, all 5 collector tests, and build).
+- No real Chrome/Chromium end-to-end demo or ordinary-site check was performed. Browser presence alone does not verify extension permissions, dynamic script registration, event delivery, or popup rendering.
 
-## Remaining
+## Remaining before Phase 3 is demo-ready
 
-1. Install the existing locked dependencies, then run `npm run check` and resolve any code/test failures.
-2. Load `dist/` in Chrome/Chromium, grant a site and optional `webRequest`, run the local testbed, and manually confirm observed activity appears in the popup with the correct evidence labels.
+1. In Chrome/Chromium, load `dist/`, grant the testbed host and optional `webRequest` permission, reload the testbed page, then verify form, storage, page-hook, and browser network events; inspect destination metadata and the correlated finding/evidence.
+2. Verify monitoring-off, missing-permission, and empty-activity states, then grant access to one ordinary site and confirm behavior is not testbed-specific.
+3. Record the manual results here and update README only if observed behavior differs from the documented flow.
+
+Phase 3 is implemented and automated checks largely pass, but it is not marked demo-ready until the remaining commands and real-browser checks above are completed.
