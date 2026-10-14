@@ -87,3 +87,18 @@ test('does not grant cross-origin access to unrelated origins', async () => {
   });
   assert.equal(response.status, 403);
 });
+
+
+test('serves the stylesheet as CSS instead of returning 404', async () => {
+  const response = await fetch(`${baseUrl}/styles.css`);
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-type') ?? '', /text\/css/);
+  assert.match(await response.text(), /--canvas/);
+});
+
+test('serves the action script as JavaScript instead of returning 404', async () => {
+  const response = await fetch(`${baseUrl}/app.js`);
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-type') ?? '', /javascript/);
+  assert.match(await response.text(), /Run all actions|run-all/);
+});

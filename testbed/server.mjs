@@ -9,7 +9,12 @@ export const SYNTHETIC_SUBMISSION = Object.freeze({
   note: 'Synthetic test submission',
 });
 
-const pagePath = fileURLToPath(new URL('./index.html', import.meta.url));
+const assetPaths = new Map([
+  ['/', { file: 'index.html', type: 'text/html; charset=utf-8' }],
+  ['/index.html', { file: 'index.html', type: 'text/html; charset=utf-8' }],
+  ['/styles.css', { file: 'styles.css', type: 'text/css; charset=utf-8' }],
+  ['/app.js', { file: 'app.js', type: 'text/javascript; charset=utf-8' }],
+]);
 const MAX_BODY_BYTES = 2048;
 
 /** Accept only this fixture's fixed synthetic payload; never log arbitrary input. */
@@ -62,13 +67,19 @@ export function createTestbedServer(log = (entry) => console.log(entry)) {
       response.end();
       return;
     }
-    if (request.method === 'GET' && pathname === '/') {
+    if (request.method === 'GET' && assetPaths.has(pathname)) {
       try {
-        const html = await readFile(pagePath);
-        response.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
-        response.end(html);
+        const asset = assetPaths.get(pathname);
+        const assetPath = fileURLToPath(new URL(`./${asset.file}`, import.meta.url));
+        const contents = await readFile(assetPath);
+        response.writeHead(200, {
+          'content-type': asset.type,
+          'cache-control': 'no-store',
+          'x-content-type-options': 'nosniff',
+        });
+        response.end(contents);
       } catch {
-        sendJson(response, 500, { ok: false, error: 'Test page unavailable' });
+        sendJson(response, 500, { ok: false, error: 'Testbed asset unavailable' });
       }
       return;
     }
