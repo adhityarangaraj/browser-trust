@@ -40,13 +40,19 @@ export class CollectorManager {
     this.markReady();
   }
 
-  status(): CollectorStatus[] {
-    return this.collectors.map((c) => ({
-      id: c.id,
-      categories: c.categories,
-      mechanism: c.mechanism,
-      requiredPermissions: c.requiredPermissions ?? [],
-      state: !c.isAvailable() ? 'needs-permission' : this.enabled ? 'active' : 'paused',
+  async status(): Promise<CollectorStatus[]> {
+    return Promise.all(this.collectors.map(async (collector) => {
+      const requiredPermissions = collector.requiredPermissions ?? [];
+      const granted = requiredPermissions.length === 0 || await chrome.permissions.contains({
+        permissions: [...requiredPermissions],
+      });
+      return {
+        id: collector.id,
+        categories: collector.categories,
+        mechanism: collector.mechanism,
+        requiredPermissions,
+        state: !granted || !collector.isAvailable() ? 'needs-permission' : this.enabled ? 'active' : 'paused',
+      };
     }));
   }
 }

@@ -13,7 +13,8 @@
     "watch": "node scripts/build.mjs --watch",
     "clean": "node scripts/build.mjs --clean",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run && node --test testbed/server-test.mjs",
+    "testbed": "node testbed/server.mjs",
     "check": "npm run typecheck && npm test && npm run build"
   },
   "devDependencies": {

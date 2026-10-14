@@ -1,57 +1,59 @@
 # AGENTS.md
 
-Guidance for AI agents and contributors working on BrowserTrust. Read `README.md` first for the stack, commands and permissions.
+Guidance for AI agents and contributors working on BrowserTrust.
 
-## What this is
+**Before planning or implementing any change, read both `README.md` and `sol.md`.** `sol.md` is the source of truth for the product plan, phase boundaries, architecture, and acceptance criteria. Keep it, this file, and `PROGRESS.md` consistent with the actual implementation. Read the README first for stack, commands, and permissions.
 
-A general-purpose Chrome MV3 extension that will observe what arbitrary websites do with their access and explain suspicious behavior. It is standalone: do not integrate with, depend on, or shape the design around Redact Agent, uBlock Origin or any other extension. Test fixtures must never define product behavior.
+## Product and scope
 
-Phase 1 is a foundation. Do not describe a capability as working unless code observes it and a test or manual check shows it.
+BrowserTrust is a standalone, general-purpose Chrome Manifest V3 extension for observing and explaining selected website behavior. Do not integrate with, depend on, or shape product behavior around Redact Agent, uBlock Origin, or another extension. `testbed/` is a fixture only; extension code must never import or depend on it. Do not claim a capability works unless code observes it and tests or a documented manual check support the claim.
+
+Phase 2 covers metadata collection, page observers and selected MAIN-world hooks, local event processing/storage, the popup, and the isolated local testbed. Detection rules, findings, correlation, and AI analysis are not live features.
 
 ## Architecture
 
 | Responsibility | Location | Runs in |
 | --- | --- | --- |
 | Lifecycle, message routing | `src/background/index.ts` | service worker |
-| Background event sources | `src/collectors/` (`Collector`, `collectors` registry) managed by `src/background/collector-manager.ts` | service worker |
-| Page-level event sources | `src/content/` (`ContentObserver`, `observers` registry, `index.ts` bootstrap) | content script, isolated world |
-| Validation, storage, ingestion | `src/core/` (`normalize.ts`, `store.ts`, `pipeline.ts`) | service worker |
-| Rules and findings | `src/analysis/` (`types.ts`, `engine.ts`, `rules/`) | not wired yet |
-| Settings and site access | `src/config/` | any extension context |
+| Background event sources | `src/collectors/` managed by `src/background/collector-manager.ts` | service worker |
+| Page event sources | `src/content/` observers and bootstrap | isolated content script |
+| Selected page API wrappers | `src/page-hooks/` | MAIN world |
+| Validation, storage, ingestion | `src/core/` | service worker |
+| Analysis types/engine | `src/analysis/` | not wired into live collection |
+| Settings and site access | `src/config/` | extension contexts |
 | UI | `src/popup/` | popup |
-| Schema and messages | `src/shared/` | everywhere |
+| Schema and messages | `src/shared/` | shared |
+| Local test fixture | `testbed/` | standalone Node process/browser page; never imported by extension |
 
-Entry points (bundled by `scripts/build.mjs`): `src/background/index.ts` → `background.js` (ESM), `src/content/index.ts` → `content.js` (IIFE), `src/popup/popup.ts` → `popup.js` (IIFE). `public/manifest.json` and `src/popup/popup.{html,css}` are copied to `dist/`.
+Entry points are bundled by `scripts/build.mjs`: `src/background/index.ts` to `background.js` (ESM), `src/content/index.ts` to `content.js` (IIFE), `src/page-hooks/index.ts` to `page-hook.js` (IIFE), and `src/popup/popup.ts` to `popup.js` (IIFE). Static extension files are copied into `dist/`.
 
-Key rule: **all events go through `EventPipeline`** (`emit` for collectors, `ingestFromContent` for content scripts). Nothing else writes events to storage.
+**All events go through `EventPipeline`** (`emit` for collectors, `ingestFromContent` for content scripts). No other module writes events to storage.
 
 ## Conventions
 
-- TypeScript strict mode; no `any`. Validate untrusted input at boundaries (`validateEvent`, message handlers).
-- Keep browser-API code thin and put logic in pure functions that tests can import without `chrome`. Files under `src/core` and the pure parts of `src/config/access.ts` are tested this way; do not call `chrome.*` at module top level in them.
-- Service worker: register listeners synchronously at top level; keep no state that must survive a restart in memory.
-- Event actions are lowercase dotted words (`request.sent`). Collector ids are namespaced (`network.webrequest`).
-- No unnecessary abstractions or backend services. Add a registry entry rather than a new framework.
-- Tests live in `tests/*.test.ts`. Run `npm run check` before handing work back.
-- Documentation stays short and accurate. Update README status and PROGRESS.md with each change in capability.
+- TypeScript strict mode; do not add `any` outside the existing dynamic page-hook boundary. Validate untrusted input.
+- Keep browser API code thin. Keep pure logic importable without `chrome`; do not call `chrome.*` at module top level in core logic.
+- Register service-worker listeners synchronously at module load. Do not rely on in-memory state surviving worker suspension.
+- Event actions are lowercase dotted words; collector IDs are namespaced.
+- Add a collector or observer through its registry. Avoid new frameworks, services, or unnecessary abstractions.
+- Tests live in `tests/*.test.ts`; testbed HTTP server tests use Node's built-in test runner. Run `npm run check` before handoff when the environment permits.
+- Update README status and `PROGRESS.md` when capabilities change. Report exact failed or unavailable checks.
 
 ## Security constraints
 
-- Never store raw sensitive values: form field values, passwords, cookie or storage values, clipboard contents, request or response bodies. Record metadata (field type, size, API name, host) instead.
-- Strip query strings and fragments from stored URLs unless a feature explicitly needs them and the README says so.
-- Content scripts and the page share a hostile environment. A content script may only send `ingest-event`; the background derives `source` from the message sender and ignores any source the content script claims. Privileged messages (`get-state`, `set-monitoring`, `list-events`, `clear-events`) are rejected when they come from a tab.
-- Render event data in the UI with `textContent` or DOM APIs, never `innerHTML`.
-- Never hardcode hostnames. Site access comes only from user-granted optional host permissions.
-- No network calls to third parties from the extension. Any AI analysis must be local or explicitly opt-in, and must receive normalized events, not raw page content.
-- Do not request new permissions without documenting them in the README table.
+- Never store raw form values, passwords, cookie/storage values, clipboard contents, or request/response bodies. Record metadata such as type, size, API, and host.
+- Strip query strings and fragments from stored URLs unless a feature explicitly needs them and the README documents why.
+- Content/page messages are untrusted. A content script may only send `ingest-event`; the background derives source from `sender` and ignores any claimed source. Reject privileged messages (`get-state`, `set-monitoring`, `list-events`, `clear-events`) from tabs.
+- Render event data with `textContent` or DOM APIs, never `innerHTML`.
+- Never hardcode a product hostname. Site access comes only from user-granted optional host permissions. The local testbed hostname may appear only in `testbed/` and its documentation.
+- Do not add third-party network calls to the extension. Any future AI analysis must be optional/off by default and receive only normalized/minimized events.
+- Document any new permission in the README table.
 
-## Extending in later phases
+## Extending the project
 
-- **New background source** (e.g. webRequest metadata): implement `Collector`, add it to `src/collectors/index.ts`, declare any new optional permission in `public/manifest.json` and README, request it from the popup on user action, emit through the provided `CollectorContext`.
-- **New page source** (DOM, forms): implement `ContentObserver`, add it to `src/content/observers/index.ts`. Emit `ContentEventInput` only.
-- **Page API hooks** (fetch, storage, clipboard, geolocation): requires a MAIN-world script. Register it in `syncContentScripts` (`world: 'MAIN'`, `runAt: 'document_start'`), add an esbuild entry in `scripts/build.mjs`, and relay its events through the isolated content script (e.g. `window.postMessage` with a per-page nonce), treating them as untrusted. Mark evidence `mechanism: 'main-world-hook'` and document bypass limits.
-- **Detection**: add `Rule`s to `src/analysis/rules/index.ts`, subscribe `analyze` to `pipeline.subscribe`, store findings separately from events. Findings must cite `eventIds`; inferred events must set `provenance: 'inferred'` and `relatedEventIds`.
-- **Correlation**: produce inferred events or findings that reference observed ones; never rewrite observed events.
-- **AI analysis**: implement `BehaviorAnalyzer`, optional and off by default.
-- **Phase 2 test site and collector**: add them as separate top-level directories (e.g. `testbed/`) that the extension never imports. Test the extension through its normal collectors and observers.
-- Add or change UI in `src/popup/`; if the message set changes, update `src/shared/messages.ts` and the sender checks in `src/background/index.ts`.
+- Background sources implement `Collector`, register in `src/collectors/index.ts`, document/request optional permissions through the popup, and emit via `CollectorContext`.
+- Page sources implement `ContentObserver`, register in `src/content/observers/index.ts`, and emit `ContentEventInput` only.
+- MAIN-world hooks register in `syncContentScripts` at `document_start`; relay as untrusted input through the isolated script. Document bypass limits.
+- Future rules must cite supporting event IDs and be explicitly wired into analysis. Inferred events must set `provenance: 'inferred'` and `relatedEventIds`; never rewrite observed events.
+- Keep testbed fixtures in `testbed/`. The extension must never import testbed files or encode its host/port as product behavior.
+- If message types change, update `src/shared/messages.ts` and sender checks in `src/background/index.ts`.

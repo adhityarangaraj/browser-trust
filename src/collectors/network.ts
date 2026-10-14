@@ -78,7 +78,6 @@ export function createNetworkCollector(): Collector {
     isAvailable,
     attach(context) {
       if (attached || !isAvailable()) return;
-      attached = true;
       chrome.webRequest.onBeforeRequest.addListener(
         (details) => {
           const event = buildNetworkEvent(details);
@@ -86,6 +85,9 @@ export function createNetworkCollector(): Collector {
         },
         { urls: ['<all_urls>'] },
       );
+      // Mark only after registration succeeds. With an ungranted optional
+      // permission Chrome may throw; a later permission grant must retry.
+      attached = true;
     },
   };
 }

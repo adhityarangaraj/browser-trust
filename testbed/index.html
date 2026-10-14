@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BrowserTrust local test site</title>
+    <style>
+      :root { color-scheme: light dark; font: 16px/1.5 system-ui, sans-serif; }
+      body { max-width: 48rem; margin: 3rem auto; padding: 0 1rem; }
+      main { border: 1px solid #8886; border-radius: 1rem; padding: 1.5rem; }
+      label { display: block; margin: 1rem 0; }
+      input { display: block; width: min(100%, 30rem); padding: .5rem; }
+      button { margin: .25rem .5rem .25rem 0; padding: .6rem .9rem; }
+      #result { min-height: 1.5em; }
+      .fixture { padding: .75rem; border-left: .25rem solid #2676b8; background: #8881; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>BrowserTrust local test site</h1>
+      <p class="fixture"><strong>Local fixture only.</strong> This page uses fixed synthetic values and sends them only to the local server on this machine.</p>
+
+      <h2>Form interaction and local POST</h2>
+      <form id="demo-form" action="/collect" method="post">
+        <label> Synthetic display name
+          <input name="displayName" value="BrowserTrust Demo" readonly>
+        </label>
+        <label> Synthetic note
+          <input name="note" value="Synthetic test submission" readonly>
+        </label>
+        <button id="input-button" type="button">Trigger synthetic form interaction</button>
+        <button type="submit">Submit synthetic test form</button>
+      </form>
+
+      <h2>Storage method</h2>
+      <button id="storage-button" type="button">Write synthetic local storage value</button>
+      <p id="result" role="status" aria-live="polite"></p>
+    </main>
+    <script>
+      const result = document.querySelector('#result');
+      document.querySelector('#storage-button').addEventListener('click', () => {
+        localStorage.setItem('browsertrust-testbed', 'synthetic-only');
+        result.textContent = 'A synthetic value was written to local storage.';
+      });
+
+      document.querySelector('#input-button').addEventListener('click', () => {
+        for (const field of document.querySelectorAll('#demo-form input')) {
+          field.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        result.textContent = 'Synthetic input events were dispatched; no field values were read by the extension.';
+      });
+
+      document.querySelector('#demo-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const payload = Object.fromEntries(new FormData(form));
+        result.textContent = 'Sending the fixed synthetic form to the local collector…';
+        try {
+          const response = await fetch(form.action, {
+            method: form.method,
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          result.textContent = response.ok
+            ? 'The local collector accepted the synthetic test submission.'
+            : `The local collector rejected the submission (${response.status}).`;
+        } catch {
+          result.textContent = 'The local collector is not running. Start it with the documented command and retry.';
+        }
+      });
+    </script>
+  </body>
+</html>

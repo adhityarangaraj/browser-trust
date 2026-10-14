@@ -20,6 +20,8 @@ const enablePermissions = el<HTMLButtonElement>('enable-permissions');
 const eventsSummary = el('events-summary');
 const eventsList = el('events-list');
 const clearEvents = el<HTMLButtonElement>('clear-events');
+let currentTabUrl: string | undefined;
+let requiredPermissions: chrome.runtime.ManifestPermission[] = [];
 
 async function activeTabUrl(): Promise<string | undefined> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -47,6 +49,7 @@ function renderCollectors(state: StateSnapshot): void {
   }
   const blocked = state.collectors.filter((c) => c.state === 'needs-permission');
   enablePermissions.hidden = blocked.length === 0;
+  requiredPermissions = [...new Set(blocked.flatMap((collector) => collector.requiredPermissions))];
   const allSites = ALL_SITES_PATTERNS.every((p) => state.grantedOrigins.includes(p));
   collectorsHint.textContent = allSites
     ? 'Page-level observers run on allowed sites.'
@@ -78,7 +81,8 @@ function renderSite(state: StateSnapshot, url: string | undefined): void {
 function describeEvent(event: BrowserTrustEvent): string {
   const time = new Date(event.timestamp).toLocaleTimeString();
   const target = event.destination?.host ? ` → ${event.destination.host}` : '';
-  return `${time} · ${event.category}/${event.action} · ${event.source.origin}${target}`;
+  const mechanism = `${event.evidence.mechanism} (${event.evidence.collector})`;
+  return `${time} · ${event.category}/${event.action} · ${event.source.origin}${target} · via ${mechanism} · ${event.provenance}`;
 }
 
 function renderEvents(state: StateSnapshot, events: BrowserTrustEvent[]): void {
@@ -104,6 +108,7 @@ async function refresh(): Promise<void> {
   ]);
   renderMonitoring(state);
   renderCollectors(state);
+  currentTabUrl = url;
   renderSite(state, url);
   renderEvents(state, events);
 }
@@ -115,14 +120,14 @@ toggle.addEventListener('change', async () => {
 
 // permissions.request must run directly inside the click handler (user gesture).
 allowSite.addEventListener('click', async () => {
-  const analysis = analyzeUrl(await activeTabUrl());
+  const analysis = analyzeUrl(currentTabUrl);
   if (!analysis.ok) return;
   await chrome.permissions.request({ origins: [analysis.pattern] });
   await refresh();
 });
 
 removeSite.addEventListener('click', async () => {
-  const analysis = analyzeUrl(await activeTabUrl());
+  const analysis = analyzeUrl(currentTabUrl);
   if (!analysis.ok) return;
   await chrome.permissions.remove({ origins: [analysis.pattern] });
   await refresh();
@@ -134,9 +139,7 @@ allowAll.addEventListener('click', async () => {
 });
 
 enablePermissions.addEventListener('click', async () => {
-  const state = await sendRequest<'get-state'>({ type: 'get-state' });
-  const permissions = [...new Set(state.collectors.flatMap((c) => c.requiredPermissions))];
-  if (permissions.length > 0) await chrome.permissions.request({ permissions });
+  if (requiredPermissions.length > 0) await chrome.permissions.request({ permissions: requiredPermissions });
   await refresh();
 });
 

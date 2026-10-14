@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createEvent } from '../src/core/normalize';
-import { buildNetworkEvent, type RequestDetails } from '../src/collectors/network';
+import { buildNetworkEvent, createNetworkCollector, type RequestDetails } from '../src/collectors/network';
 
 const base: RequestDetails = {
   url: 'https://tracker.example/collect?id=SECRET&v=1#x',
@@ -36,5 +36,29 @@ describe('buildNetworkEvent', () => {
   it('ignores tab-less and extension traffic', () => {
     expect(buildNetworkEvent({ ...base, tabId: -1 })).toBeUndefined();
     expect(buildNetworkEvent({ ...base, initiator: 'chrome-extension://abc' })).toBeUndefined();
+  });
+});
+
+describe('network collector registration', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('retries registration after the optional permission becomes available', () => {
+    let shouldThrow = true;
+    let registrations = 0;
+    const event = {
+      addListener: () => {
+        registrations += 1;
+        if (shouldThrow) throw new Error('webRequest permission is missing');
+      },
+    };
+    vi.stubGlobal('chrome', { webRequest: { onBeforeRequest: event } });
+    const collector = createNetworkCollector();
+
+    expect(() => collector.attach({ emit: async () => undefined })).toThrow('permission is missing');
+    shouldThrow = false;
+    collector.attach({ emit: async () => undefined });
+    collector.attach({ emit: async () => undefined });
+
+    expect(registrations).toBe(2);
   });
 });

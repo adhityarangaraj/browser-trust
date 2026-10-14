@@ -1,7 +1,7 @@
 /**
  * BrowserTrust content script (isolated world). It is registered dynamically
- * only on origins the user has granted. In Phase 1 there are no observers,
- * so it observes and reports nothing.
+ * only on origins the user has granted and starts the registered observers
+ * only while monitoring is enabled.
  */
 import { loadSettings, SETTINGS_KEY } from '../config/settings';
 import type { ContentEventInput } from '../core/normalize';

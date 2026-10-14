@@ -41,7 +41,7 @@ async function snapshot(): Promise<StateSnapshot> {
   return {
     settings,
     eventCount,
-    collectors: collectorManager.status(),
+    collectors: await collectorManager.status(),
     grantedOrigins,
     contentScriptRegistered,
   };
@@ -75,6 +75,9 @@ async function handle(request: Request, sender: chrome.runtime.MessageSender): P
     case 'set-monitoring': {
       const settings = await loadSettings();
       await saveSettings({ ...settings, monitoringEnabled: request.enabled });
+      // Close the collector gate immediately after persistence succeeds; do
+      // not leave a window open while content scripts are reconciled.
+      collectorManager.setMonitoring(request.enabled);
       await reconcile();
       return snapshot();
     }
