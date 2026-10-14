@@ -22,7 +22,7 @@ after(async () => {
 test('serves the clearly labelled local fixture', async () => {
   const response = await fetch(baseUrl);
   assert.equal(response.status, 200);
-  assert.match(await response.text(), /BrowserTrust local test site/);
+  assert.match(await response.text(), /A suspicious website/);
 });
 
 test('accepts and logs only the fixed synthetic POST', async () => {
@@ -60,4 +60,30 @@ test('rejects oversized payloads without logging them', async () => {
   });
   assert.equal(response.status, 413);
   assert.equal(received.length, 1);
+});
+
+
+test('allows only the fixture origin to preflight the local cross-origin demo POST', async () => {
+  const response = await fetch(`${baseUrl}/collect`, {
+    method: 'OPTIONS',
+    headers: {
+      origin: 'http://127.0.0.1:4173',
+      'access-control-request-method': 'POST',
+      'access-control-request-headers': 'content-type'
+    }
+  });
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get('access-control-allow-origin'), 'http://127.0.0.1:4173');
+});
+
+test('does not grant cross-origin access to unrelated origins', async () => {
+  const response = await fetch(`${baseUrl}/collect`, {
+    method: 'OPTIONS',
+    headers: {
+      origin: 'https://example.com',
+      'access-control-request-method': 'POST',
+      'access-control-request-headers': 'content-type'
+    }
+  });
+  assert.equal(response.status, 403);
 });

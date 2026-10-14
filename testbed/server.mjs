@@ -43,6 +43,25 @@ function sendJson(response, statusCode, payload) {
 export function createTestbedServer(log = (entry) => console.log(entry)) {
   return createHttpServer(async (request, response) => {
     const pathname = new URL(request.url ?? '/', `http://${TESTBED_HOST}`).pathname;
+    // The fixture's alternate localhost origin is intentionally cross-origin from
+    // 127.0.0.1, but still loopback-only. Permit only this fixture's page origin.
+    const origin = String(request.headers.origin ?? '');
+    const allowedOrigin = origin === 'http://127.0.0.1:4173' ? origin : '';
+    if (allowedOrigin) {
+      response.setHeader('access-control-allow-origin', allowedOrigin);
+      response.setHeader('vary', 'Origin');
+      response.setHeader('access-control-allow-methods', 'POST, OPTIONS');
+      response.setHeader('access-control-allow-headers', 'content-type');
+    }
+    if (request.method === 'OPTIONS' && pathname === '/collect') {
+      if (!allowedOrigin) {
+        sendJson(response, 403, { ok: false, error: 'Origin not allowed' });
+        return;
+      }
+      response.writeHead(204, { 'cache-control': 'no-store' });
+      response.end();
+      return;
+    }
     if (request.method === 'GET' && pathname === '/') {
       try {
         const html = await readFile(pagePath);
