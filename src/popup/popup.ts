@@ -14,6 +14,9 @@ const siteStatus = el('site-status');
 const allowSite = el<HTMLButtonElement>('allow-site');
 const removeSite = el<HTMLButtonElement>('remove-site');
 const allowAll = el<HTMLButtonElement>('allow-all');
+const collectorsList = el('collectors-list');
+const collectorsHint = el('collectors-hint');
+const enablePermissions = el<HTMLButtonElement>('enable-permissions');
 const eventsSummary = el('events-summary');
 const eventsList = el('events-list');
 const clearEvents = el<HTMLButtonElement>('clear-events');
@@ -26,14 +29,28 @@ async function activeTabUrl(): Promise<string | undefined> {
 function renderMonitoring(state: StateSnapshot): void {
   const on = state.settings.monitoringEnabled;
   toggle.checked = on;
-  const running = state.collectors.filter((c) => c.running).length;
-  if (!on) {
-    monitoringStatus.textContent = 'Monitoring is off.';
-  } else if (state.collectors.length === 0) {
-    monitoringStatus.textContent = 'Monitoring is on, but no collectors exist yet (Phase 1).';
-  } else {
-    monitoringStatus.textContent = `Monitoring is on (${running} of ${state.collectors.length} collectors running).`;
+  monitoringStatus.textContent = on
+    ? 'Monitoring is on. Only sites you allowed are observed.'
+    : 'Monitoring is off.';
+}
+
+function renderCollectors(state: StateSnapshot): void {
+  collectorsList.replaceChildren();
+  for (const collector of state.collectors) {
+    const item = document.createElement('li');
+    const label =
+      collector.state === 'needs-permission'
+        ? `needs permission: ${collector.requiredPermissions.join(', ')}`
+        : collector.state;
+    item.textContent = `${collector.id} — ${label}`;
+    collectorsList.append(item);
   }
+  const blocked = state.collectors.filter((c) => c.state === 'needs-permission');
+  enablePermissions.hidden = blocked.length === 0;
+  const allSites = ALL_SITES_PATTERNS.every((p) => state.grantedOrigins.includes(p));
+  collectorsHint.textContent = allSites
+    ? 'Page-level observers run on allowed sites.'
+    : 'Network metadata only covers requests to hosts you allowed. Seeing third-party destinations needs access to all websites.';
 }
 
 function renderSite(state: StateSnapshot, url: string | undefined): void {
@@ -68,7 +85,7 @@ function renderEvents(state: StateSnapshot, events: BrowserTrustEvent[]): void {
   eventsList.replaceChildren();
   clearEvents.hidden = state.eventCount === 0;
   if (state.eventCount === 0) {
-    eventsSummary.textContent = 'No events recorded. Nothing is collected yet in Phase 1.';
+    eventsSummary.textContent = 'No events recorded yet. Allow a site, browse it, then reopen this popup.';
     return;
   }
   eventsSummary.textContent = `${state.eventCount} stored event(s). Showing the latest ${events.length}.`;
@@ -86,6 +103,7 @@ async function refresh(): Promise<void> {
     activeTabUrl(),
   ]);
   renderMonitoring(state);
+  renderCollectors(state);
   renderSite(state, url);
   renderEvents(state, events);
 }
@@ -112,6 +130,13 @@ removeSite.addEventListener('click', async () => {
 
 allowAll.addEventListener('click', async () => {
   await chrome.permissions.request({ origins: [...ALL_SITES_PATTERNS] });
+  await refresh();
+});
+
+enablePermissions.addEventListener('click', async () => {
+  const state = await sendRequest<'get-state'>({ type: 'get-state' });
+  const permissions = [...new Set(state.collectors.flatMap((c) => c.requiredPermissions))];
+  if (permissions.length > 0) await chrome.permissions.request({ permissions });
   await refresh();
 });
 

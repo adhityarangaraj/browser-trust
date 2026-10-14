@@ -131,9 +131,11 @@ function readDestination(value: unknown, errors: string[]): EventDestination | u
   for (const key of ['origin', 'host', 'url', 'method', 'resourceType'] as const) {
     copyOptionalString(value, destination, key, errors, 'destination');
   }
-  if (value.isThirdParty !== undefined) {
-    if (typeof value.isThirdParty === 'boolean') destination.isThirdParty = value.isThirdParty;
-    else errors.push('destination.isThirdParty must be a boolean');
+  for (const key of ['isCrossOrigin', 'isThirdParty'] as const) {
+    const flag = value[key];
+    if (flag === undefined) continue;
+    if (typeof flag === 'boolean') destination[key] = flag;
+    else errors.push(`destination.${key} must be a boolean`);
   }
   return destination;
 }

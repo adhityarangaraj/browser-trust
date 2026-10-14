@@ -1,29 +1,43 @@
-import type { Collector, CollectorContext, CollectorStatus } from '../collectors/types';
+import type { NewEvent } from '../core/normalize';
+import type { Collector, CollectorStatus } from '../collectors/types';
 
-/** Starts and stops collectors according to the monitoring switch. */
+/**
+ * Attaches collectors and gates their events on the monitoring switch.
+ * Listeners are attached once per worker start (and again when a permission is
+ * granted); the switch is checked per event, so toggling needs no re-attach.
+ */
 export class CollectorManager {
-  private readonly running = new Set<string>();
+  private enabled = false;
+  private markReady!: () => void;
+  private readonly ready = new Promise<void>((resolve) => {
+    this.markReady = resolve;
+  });
 
   constructor(
     private readonly collectors: readonly Collector[],
-    private readonly context: CollectorContext,
+    private readonly sink: (event: NewEvent) => Promise<void>,
   ) {}
 
-  async sync(monitoringEnabled: boolean): Promise<void> {
+  /** Synchronous. Call at the top level of the service worker and after permission changes. */
+  attachAll(): void {
+    const context = {
+      emit: async (event: NewEvent) => {
+        await this.ready; // events can arrive before settings finish loading
+        if (this.enabled) await this.sink(event);
+      },
+    };
     for (const collector of this.collectors) {
-      const isRunning = this.running.has(collector.id);
       try {
-        if (monitoringEnabled && !isRunning) {
-          await collector.start(this.context);
-          this.running.add(collector.id);
-        } else if (!monitoringEnabled && isRunning) {
-          await collector.stop();
-          this.running.delete(collector.id);
-        }
+        collector.attach(context);
       } catch (error) {
-        console.error(`BrowserTrust: collector ${collector.id} failed`, error);
+        console.error(`BrowserTrust: collector ${collector.id} failed to attach`, error);
       }
     }
+  }
+
+  setMonitoring(enabled: boolean): void {
+    this.enabled = enabled;
+    this.markReady();
   }
 
   status(): CollectorStatus[] {
@@ -31,7 +45,8 @@ export class CollectorManager {
       id: c.id,
       categories: c.categories,
       mechanism: c.mechanism,
-      running: this.running.has(c.id),
+      requiredPermissions: c.requiredPermissions ?? [],
+      state: !c.isAvailable() ? 'needs-permission' : this.enabled ? 'active' : 'paused',
     }));
   }
 }

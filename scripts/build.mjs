@@ -26,7 +26,11 @@ const configs = [
   {
     ...common,
     format: 'iife',
-    entryPoints: { content: 'src/content/index.ts', popup: 'src/popup/popup.ts' },
+    entryPoints: {
+      content: 'src/content/index.ts',
+      'page-hook': 'src/page-hooks/index.ts',
+      popup: 'src/popup/popup.ts',
+    },
   },
 ];
 

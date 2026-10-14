@@ -1,0 +1,26 @@
+{
+  "name": "browsertrust",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BrowserTrust: general-purpose browser security and behavioral monitoring extension (Manifest V3).",
+  "type": "module",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "clean": "node scripts/build.mjs --clean",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.3.5",
+    "esbuild": "^0.28.2",
+    "jsdom": "^29.1.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.4"
+  }
+}

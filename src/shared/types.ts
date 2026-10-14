@@ -62,7 +62,12 @@ export interface EventDestination {
   url?: string;
   method?: string;
   resourceType?: string;
-  /** True when destination site differs from the source site. */
+  /** True when the destination origin differs from the source origin. */
+  isCrossOrigin?: boolean;
+  /**
+   * True when the destination site differs from the source site. Not populated yet:
+   * it needs a public suffix list, so "cross-origin" is what collectors report.
+   */
   isThirdParty?: boolean;
 }
 

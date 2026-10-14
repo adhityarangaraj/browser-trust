@@ -1,18 +1,22 @@
 # Progress
 
-## Snapshot: Phase 1 complete (foundation)
+## Snapshot: Phase 2 in progress (checkpoint 2)
 
-- TypeScript + esbuild + Vitest; MV3 extension builds to `dist/`.
-- Service worker, popup (monitoring toggle, per-site access, empty state), dynamic content-script registration on user-granted origins.
-- Event schema, validation, local store (1000-event ring buffer), single ingestion pipeline.
-- Empty registries and interfaces for collectors, content observers and rules.
-- Verified: `npm run typecheck`, `npm test` (30 tests) and `npm run build` pass. Not yet loaded in a real browser session or tried on live sites.
-- No monitoring, detection or AI exists yet.
+Done (Phase 1): MV3 foundation, event schema/validation/store/pipeline, popup, dynamic content-script registration.
 
-## Next: Phase 2
+Done so far in Phase 2:
+- `src/shared/url.ts`: query/fragment-stripping URL description; `destination.isCrossOrigin`.
+- Collector API changed to `attach()` (synchronous listener registration) + `isAvailable()`; events gated on the monitoring switch in `CollectorManager`.
+- Network collector (`src/collectors/network.ts`, chrome.webRequest, optional permission, metadata only).
+- Store coalesces concurrent appends; popup shows collector state and a permission button.
+- 37 unit tests pass.
 
-- Controlled test website and local collector as separate directories, not imported by the extension.
-- First real collectors through the existing registries: page lifecycle and network request metadata (`webRequest`), DOM and form observers.
-- MAIN-world hook script for storage and `fetch`/XHR, relayed through the content script.
-- Popup shows real events; tests run through the same general-purpose pipeline.
-- Verify the extension manually in Chrome and record the result.
+- Content observers: page, DOM (script/iframe/form), forms; hook relay (`src/content/observers/`).
+- MAIN-world page hook (`src/page-hooks/`): fetch, XHR, beacon, WebSocket, Web Storage methods, cookie, clipboard, geolocation, getUserMedia/getDisplayMedia, form.submit/requestSubmit. `syncContentScripts` registers it as a second script (world MAIN).
+- 64 tests pass (jsdom for observers; fake window for hooks).
+
+Remaining in Phase 2 (in order):
+3. `testbed/`: static test site + zero-dependency Node server that logs what it receives. Not imported by the extension.
+4. Update README/AGENTS, final `npm run check`, zip.
+
+Not verified in a real browser (no Chrome in the build environment).

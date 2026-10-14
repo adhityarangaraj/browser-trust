@@ -7,6 +7,7 @@
  */
 
 export const CONTENT_SCRIPT_ID = 'browsertrust-content';
+export const PAGE_HOOK_SCRIPT_ID = 'browsertrust-page-hook';
 export const ALL_SITES_PATTERNS = ['http://*/*', 'https://*/*'] as const;
 
 /** Pages where Chrome refuses extension access even with host permission. */
@@ -69,29 +70,37 @@ export async function isContentScriptRegistered(): Promise<boolean> {
 }
 
 /**
- * Makes the registered content script match the granted origins.
- * Returns true when a content script is registered afterwards.
+ * Makes the registered scripts match the granted origins: the isolated-world
+ * content script (observers) and the MAIN-world page hook.
+ * Returns true when scripts are registered afterwards.
  */
 export async function syncContentScripts(monitoringEnabled: boolean): Promise<boolean> {
   const origins = monitoringEnabled ? await getGrantedOrigins() : [];
-  const registered = await isContentScriptRegistered();
+  const ids = [CONTENT_SCRIPT_ID, PAGE_HOOK_SCRIPT_ID];
+  const existing = new Set(
+    (await chrome.scripting.getRegisteredContentScripts({ ids })).map((script) => script.id),
+  );
 
   if (origins.length === 0) {
-    if (registered) await chrome.scripting.unregisterContentScripts({ ids: [CONTENT_SCRIPT_ID] });
+    const stale = ids.filter((id) => existing.has(id));
+    if (stale.length > 0) await chrome.scripting.unregisterContentScripts({ ids: stale });
     return false;
   }
 
-  const script: chrome.scripting.RegisteredContentScript = {
-    id: CONTENT_SCRIPT_ID,
+  const common = {
     matches: origins,
     excludeMatches: EXCLUDED_MATCHES,
-    js: ['content.js'],
     runAt: 'document_start',
     allFrames: true,
     persistAcrossSessions: true,
-    world: 'ISOLATED',
-  };
-  if (registered) await chrome.scripting.updateContentScripts([script]);
-  else await chrome.scripting.registerContentScripts([script]);
+  } as const;
+  const scripts: chrome.scripting.RegisteredContentScript[] = [
+    { ...common, id: PAGE_HOOK_SCRIPT_ID, js: ['page-hook.js'], world: 'MAIN' },
+    { ...common, id: CONTENT_SCRIPT_ID, js: ['content.js'], world: 'ISOLATED' },
+  ];
+  const toUpdate = scripts.filter((script) => existing.has(script.id));
+  const toRegister = scripts.filter((script) => !existing.has(script.id));
+  if (toUpdate.length > 0) await chrome.scripting.updateContentScripts(toUpdate);
+  if (toRegister.length > 0) await chrome.scripting.registerContentScripts(toRegister);
   return true;
 }

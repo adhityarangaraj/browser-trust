@@ -22,18 +22,26 @@ export const MAX_EVENTS = 1000;
 
 export class EventStore {
   private queue: Promise<unknown> = Promise.resolve();
+  private pending: BrowserTrustEvent[] = [];
+  private scheduledFlush: Promise<void> | undefined;
 
   constructor(
     private readonly adapter: StorageAdapter,
     private readonly maxEvents: number = MAX_EVENTS,
   ) {}
 
+  /** Appends are coalesced: events arriving while a write is queued share one storage write. */
   append(event: BrowserTrustEvent): Promise<void> {
-    return this.enqueue(async () => {
+    this.pending.push(event);
+    this.scheduledFlush ??= this.enqueue(async () => {
+      this.scheduledFlush = undefined;
+      const batch = this.pending.splice(0);
+      if (batch.length === 0) return;
       const events = await this.read();
-      events.push(event);
+      events.push(...batch);
       await this.adapter.set(EVENTS_KEY, events.slice(-this.maxEvents));
     });
+    return this.scheduledFlush;
   }
 
   /** Newest first. */

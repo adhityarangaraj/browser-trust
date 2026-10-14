@@ -17,16 +17,18 @@ import { CollectorManager } from './collector-manager';
 
 const store = new EventStore(chromeStorageAdapter);
 const pipeline = new EventPipeline(store);
-const collectorManager = new CollectorManager(collectors, {
-  emit: async (event) => {
-    await pipeline.emit(event);
-  },
+const collectorManager = new CollectorManager(collectors, async (event) => {
+  await pipeline.emit(event);
 });
+
+// Listeners must be registered synchronously so Chrome can wake the worker for them.
+collectorManager.attachAll();
 
 async function reconcile(): Promise<void> {
   const settings = await loadSettings();
+  collectorManager.attachAll(); // picks up collectors whose permission was just granted
+  collectorManager.setMonitoring(settings.monitoringEnabled);
   await syncContentScripts(settings.monitoringEnabled);
-  await collectorManager.sync(settings.monitoringEnabled);
 }
 
 async function snapshot(): Promise<StateSnapshot> {
@@ -101,5 +103,5 @@ chrome.runtime.onStartup.addListener(() => void reconcile());
 chrome.permissions.onAdded.addListener(() => void reconcile());
 chrome.permissions.onRemoved.addListener(() => void reconcile());
 
-// Collectors are in-memory, so restart them each time the worker wakes up.
-void loadSettings().then((s) => collectorManager.sync(s.monitoringEnabled));
+// The monitoring switch is in-memory, so reload it each time the worker wakes up.
+void loadSettings().then((s) => collectorManager.setMonitoring(s.monitoringEnabled));
