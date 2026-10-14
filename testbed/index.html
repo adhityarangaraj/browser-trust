@@ -3,204 +3,84 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BrowserTrust | Suspicious Activity Lab</title>
-  <style>
-    :root {
-      color-scheme: light;
-      font: 16px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      --ink: #15324b; --muted: #557087; --blue: #2563eb; --blue-dark: #1d4ed8;
-      --green: #15803d; --green-soft: #dcfce7; --blue-soft: #dbeafe;
-      --line: #cfe0ed; --paper: #ffffff; --canvas: #eff8ff; --warn: #b45309; --warn-soft: #fef3c7;
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; color: var(--ink); background: radial-gradient(circle at 8% 0%, #d9fbe8 0, transparent 32rem), var(--canvas); }
-    .topbar { background: #fff; border-bottom: 1px solid var(--line); padding: 1rem max(1rem, calc((100% - 1050px)/2)); display:flex; align-items:center; justify-content:space-between; gap:1rem; }
-    .brand { display:flex; align-items:center; gap:.75rem; font-weight:800; font-size:1.05rem; }
-    .logo { display:grid; place-items:center; width:42px; height:42px; border-radius:13px; color:#fff; background:linear-gradient(135deg,var(--blue),var(--green)); font-weight:900; }
-    .pill { display:inline-flex; align-items:center; gap:.45rem; padding:.35rem .7rem; border-radius:999px; background:var(--warn-soft); color:#92400e; font-size:.82rem; font-weight:750; }
-    .dot { width:8px; height:8px; background:#d97706; border-radius:50%; }
-    main { width:min(1050px, calc(100% - 2rem)); margin:2rem auto 4rem; }
-    .hero { padding:clamp(1.4rem,4vw,2.6rem); border:1px solid #b8dfce; border-radius:24px; background:linear-gradient(125deg,#fff 0%,#f0fdf4 58%,#eff6ff 100%); box-shadow:0 18px 45px #164e6310; }
-    .eyebrow { text-transform:uppercase; letter-spacing:.13em; color:var(--green); font-size:.75rem; font-weight:850; }
-    h1 { margin:.45rem 0 .6rem; font-size:clamp(2rem,5vw,3.25rem); line-height:1.1; letter-spacing:-.04em; }
-    h2 { font-size:1.2rem; margin:0 0 .5rem; }
-    p { margin:.4rem 0; }
-    .lead { max-width:720px; color:var(--muted); font-size:1.05rem; }
-    .notice { display:flex; gap:.8rem; align-items:flex-start; margin-top:1.25rem; padding:1rem; border:1px solid #93c5fd; border-radius:14px; background:var(--blue-soft); }
-    .notice strong { display:block; }
-    .grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; margin:1.25rem 0; }
-    .card { background:var(--paper); border:1px solid var(--line); border-radius:18px; padding:1.2rem; box-shadow:0 5px 18px #15324b08; }
-    .number { display:grid; place-items:center; width:36px; height:36px; margin-bottom:.8rem; border-radius:11px; color:var(--blue-dark); background:var(--blue-soft); font-weight:850; }
-    .card p { color:var(--muted); font-size:.94rem; }
-    .panel { margin-top:1rem; background:#fff; border:1px solid var(--line); border-radius:20px; padding:clamp(1.1rem,3vw,1.7rem); }
-    .panel-head { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-bottom:1rem; }
-    .sub { color:var(--muted); font-size:.92rem; }
-    .fields { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
-    label { display:block; font-size:.9rem; font-weight:700; }
-    input { width:100%; margin-top:.4rem; padding:.8rem .85rem; border:1px solid #b9cbd9; border-radius:10px; background:#f8fbff; color:var(--ink); font:inherit; }
-    .actions { display:flex; flex-wrap:wrap; gap:.65rem; margin-top:1rem; }
-    button { border:0; border-radius:11px; padding:.78rem 1rem; background:var(--blue); color:white; font:inherit; font-weight:750; cursor:pointer; box-shadow:0 3px 0 #1e40af; transition:transform .12s, filter .12s; }
-    button:hover { filter:brightness(1.06); transform:translateY(-1px); }
-    button:focus-visible { outline:3px solid #86efac; outline-offset:3px; }
-    button.secondary { background:#e0f2fe; color:#075985; box-shadow:0 3px 0 #bae6fd; }
-    button.green { background:var(--green); box-shadow:0 3px 0 #166534; }
-    button:disabled { opacity:.65; cursor:wait; }
-    .status { min-height:3rem; margin-top:1rem; padding:.85rem 1rem; border-radius:12px; background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; }
-    .status.error { background:#fff7ed; border-color:#fed7aa; color:#9a3412; }
-    .steps { display:grid; gap:.65rem; margin-top:1rem; }
-    .step { display:flex; align-items:flex-start; gap:.7rem; padding:.7rem .8rem; border:1px solid var(--line); border-radius:12px; color:var(--muted); background:#fbfdff; }
-    .step .check { flex:0 0 25px; width:25px; height:25px; border-radius:8px; display:grid; place-items:center; background:#e2e8f0; color:#475569; font-size:.8rem; font-weight:850; }
-    .step.done { border-color:#86efac; color:#166534; background:#f0fdf4; }
-    .step.done .check { background:#bbf7d0; color:#166534; }
-    details { margin-top:1rem; padding-top:1rem; border-top:1px solid var(--line); color:var(--muted); }
-    summary { color:var(--blue-dark); cursor:pointer; font-weight:750; }
-    code { padding:.1rem .35rem; border-radius:5px; background:#eff6ff; color:#1d4ed8; }
-    footer { text-align:center; color:var(--muted); font-size:.85rem; margin-top:1.5rem; }
-    @media (max-width:760px) { .grid { grid-template-columns:1fr; } .fields { grid-template-columns:1fr; } .topbar { align-items:flex-start; } }
-  </style>
+  <title>BrowserTrust | Activity Lab</title>
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><span class="logo">BT</span><span>BrowserTrust <span style="display:block;font-size:.78rem;color:#557087;font-weight:500">Local security demonstration</span></span></div>
-    <span class="pill"><span class="dot"></span> SIMULATED THREAT</span>
+    <a class="brand" href="#" aria-label="BrowserTrust activity lab home">
+      <span class="logo">BT</span>
+      <span>BrowserTrust <small>Activity lab</small></span>
+    </a>
+    <span class="status-pill"><span class="status-dot"></span> Suspicious behavior demo</span>
   </header>
+
   <main>
-    <section class="hero">
-      <div class="eyebrow">Interactive test fixture</div>
-      <h1>A suspicious website.<br>Nothing leaves your machine.</h1>
-      <p class="lead">This intentionally suspicious-looking page demonstrates browser behaviors that BrowserTrust can observe: form submission, local storage access, and repeated cross-origin POST requests. It uses fixed synthetic values only.</p>
-      <div class="notice"><span aria-hidden="true">🛡️</span><div><strong>Safe, local-only simulation</strong>This is not a real attack and does not collect personal information. Requests go only to loopback addresses on your own computer. No third-party service is contacted.</div></div>
+    <section class="intro">
+      <p class="eyebrow">Interactive demo</p>
+      <h1>See what gets flagged.</h1>
+      <p class="intro-copy">Trigger browser behaviors, then inspect the events and findings in BrowserTrust.</p>
     </section>
 
-    <section class="grid" aria-label="Behaviors being demonstrated">
-      <article class="card"><div class="number">01</div><h2>Form interaction</h2><p>A browser-trusted submit event is generated from a visible form. The payload contains two fixed demo strings, not user-entered information.</p></article>
-      <article class="card"><div class="number">02</div><h2>Local storage write</h2><p>The page writes a harmless synthetic marker to this site's local storage. BrowserTrust may report the storage method call.</p></article>
-      <article class="card"><div class="number">03</div><h2>Repeated POSTs</h2><p>The simulation sends three identical fixed JSON requests to a second local origin on <code>localhost</code>. This is intended to exercise repeated cross-origin request detection.</p></article>
-    </section>
-
-    <section class="panel">
-      <div class="panel-head"><div><h2>Run the suspicious activity simulation</h2><p class="sub">Recommended for the BrowserTrust demo. Grant this page's host permission and optional webRequest permission first.</p></div></div>
-      <form id="demo-form" action="/collect" method="post">
-        <div class="fields">
-          <label>Fixed display name<input name="displayName" value="BrowserTrust Demo" readonly></label>
-          <label>Fixed note<input name="note" value="Synthetic test submission" readonly></label>
+    <section class="workspace">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Actions</p>
+          <h2>Run an activity</h2>
         </div>
-        <div class="actions">
-          <button class="green" id="run-all" type="button">Run full simulation</button>
-          <button class="secondary" id="input-button" type="button">Trigger form interaction only</button>
-          <button class="secondary" id="storage-button" type="button">Write local storage only</button>
-          <button id="submit-button" type="submit">Submit form only</button>
-        </div>
-      </form>
-      <div id="result" class="status" role="status" aria-live="polite">Ready. Open BrowserTrust, clear previous activity, then run the full simulation.</div>
-      <div class="steps" aria-label="Simulation progress">
-        <div class="step" id="step-form"><span class="check">1</span><div><strong>Form event</strong><br><span class="sub">Waiting to run</span></div></div>
-        <div class="step" id="step-storage"><span class="check">2</span><div><strong>Local storage write</strong><br><span class="sub">Waiting to run</span></div></div>
-        <div class="step" id="step-posts"><span class="check">3</span><div><strong>Three local cross-origin POSTs</strong><br><span class="sub">Waiting to run</span></div></div>
+        <span class="step-label">Choose one or run all three</span>
       </div>
-      <details>
-        <summary>What should BrowserTrust show?</summary>
-        <p>It should show page activity and network observations. Depending on Chrome permissions and the extension's matching rules, it may also produce a review finding. A finding is a heuristic based on observed metadata, not proof of malicious intent or of what a request payload contained.</p>
-        <p>If a request fails, confirm the testbed server is running with <code>npm run testbed</code> and that the browser console is not reporting a connection or CORS error.</p>
-      </details>
+
+      <div class="action-grid">
+        <article class="action-card">
+          <div class="card-top"><span class="number">01</span><span class="tag blue">Form</span></div>
+          <h3>Submit a form</h3>
+          <p>Creates a real form-submit event followed by a POST request.</p>
+          <button class="button blue" id="submit-button" type="button">Submit form <span aria-hidden="true">↗</span></button>
+        </article>
+
+        <article class="action-card">
+          <div class="card-top"><span class="number">02</span><span class="tag green">Storage</span></div>
+          <h3>Write to local storage</h3>
+          <p>Writes a synthetic marker through the browser storage API.</p>
+          <button class="button green" id="storage-button" type="button">Write marker <span aria-hidden="true">↗</span></button>
+        </article>
+
+        <article class="action-card">
+          <div class="card-top"><span class="number">03</span><span class="tag blue">Network</span></div>
+          <h3>Repeat network requests</h3>
+          <p>Sends three POST requests to a second local origin in quick succession.</p>
+          <button class="button blue" id="network-button" type="button">Send 3 requests <span aria-hidden="true">↗</span></button>
+        </article>
+      </div>
+
+      <div class="action-footer">
+        <div id="result" class="result" role="status" aria-live="polite">Ready to run. Clear BrowserTrust activity, then choose an action.</div>
+        <button class="button primary" id="run-all" type="button">Run all actions <span aria-hidden="true">→</span></button>
+      </div>
     </section>
-    <footer>BrowserTrust test fixture · Loopback only · Fixed synthetic data · No external endpoints</footer>
+
+    <section class="why-panel">
+      <div class="why-icon" aria-hidden="true">!</div>
+      <div class="why-content">
+        <p class="eyebrow">Detection guide</p>
+        <h2>Why might BrowserTrust flag this?</h2>
+        <div class="reason-list">
+          <div class="reason"><span class="reason-mark">01</span><p><strong>Form followed by a request</strong><br>A form submission followed by matching network activity can trigger a review finding. It does not prove the form values were transmitted.</p></div>
+          <div class="reason"><span class="reason-mark">02</span><p><strong>Browser API activity</strong><br>Selected API calls can be worth reviewing, but an observed call does not prove it succeeded.</p></div>
+          <div class="reason"><span class="reason-mark">03</span><p><strong>Repeated POST requests</strong><br>Several POST requests to the same cross-origin host in a short window may match a repetition rule. Repetition alone does not prove malicious intent.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <form id="demo-form" action="/collect" method="post" hidden>
+      <input name="displayName" value="BrowserTrust Demo" readonly>
+      <input name="note" value="Synthetic test submission" readonly>
+      <button type="submit">Submit</button>
+    </form>
+
+    <footer>BrowserTrust · Activity lab</footer>
   </main>
-  <script>
-    const result = document.querySelector('#result');
-    const form = document.querySelector('#demo-form');
-    const buttons = [...document.querySelectorAll('button')];
-    const setStatus = (message, error = false) => {
-      result.textContent = message;
-      result.classList.toggle('error', error);
-    };
-    const mark = (id, message) => {
-      const row = document.querySelector(`#${id}`);
-      row.classList.add('done');
-      row.querySelector('.sub').textContent = message;
-    };
-    const resetMarks = () => document.querySelectorAll('.step').forEach(row => {
-      row.classList.remove('done');
-      row.querySelector('.sub').textContent = 'Waiting to run';
-    });
-    const syntheticPayload = () => ({
-      displayName: 'BrowserTrust Demo',
-      note: 'Synthetic test submission'
-    });
-    const writeStorage = () => {
-      localStorage.setItem('browsertrust-testbed', 'synthetic-only');
-      mark('step-storage', 'Synthetic marker written');
-    };
-    const sendLocalPost = async () => {
-      // localhost and 127.0.0.1 are different origins, but both resolve to this machine.
-      const response = await fetch('http://localhost:4173/collect', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(syntheticPayload()),
-        mode: 'cors',
-        cache: 'no-store'
-      });
-      if (!response.ok) throw new Error(`Local collector returned HTTP ${response.status}`);
-      return response.json();
-    };
-    const runForm = async () => {
-      // A trusted click on the visible submit button dispatches a trusted submit event.
-      const submitButton = document.querySelector('#submit-button');
-      submitButton.click();
-    };
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      setStatus('Submitting fixed synthetic form to the local collector…');
-      try {
-        const response = await fetch(form.action, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(syntheticPayload()),
-          cache: 'no-store'
-        });
-        if (!response.ok) throw new Error(`Local collector returned HTTP ${response.status}`);
-        mark('step-form', 'Local synthetic form accepted');
-        setStatus('The local collector accepted the fixed synthetic form.');
-      } catch (error) {
-        setStatus(`${error.message || 'Could not reach local collector'}. Check that npm run testbed is running.`, true);
-      }
-    });
-    document.querySelector('#input-button').addEventListener('click', () => {
-      for (const field of form.querySelectorAll('input')) field.dispatchEvent(new Event('input', { bubbles: true }));
-      setStatus('Synthetic input events dispatched. No field values were read by BrowserTrust.');
-    });
-    document.querySelector('#storage-button').addEventListener('click', () => {
-      writeStorage();
-      setStatus('Synthetic local storage marker written.');
-    });
-    document.querySelector('#run-all').addEventListener('click', async () => {
-      buttons.forEach(button => button.disabled = true);
-      resetMarks();
-      try {
-        setStatus('Step 1/3: submitting the fixed synthetic form…');
-        const formResponse = await fetch('/collect', {
-          method: 'POST', headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(syntheticPayload()), cache: 'no-store'
-        });
-        if (!formResponse.ok) throw new Error(`Form collector returned HTTP ${formResponse.status}`);
-        mark('step-form', 'Local synthetic form accepted');
-
-        setStatus('Step 2/3: writing a harmless local-storage marker…');
-        writeStorage();
-
-        setStatus('Step 3/3: sending three fixed POSTs to a second loopback origin…');
-        for (let i = 0; i < 3; i++) {
-          await sendLocalPost();
-          await new Promise(resolve => setTimeout(resolve, 250));
-        }
-        mark('step-posts', '3/3 local POSTs accepted');
-        setStatus('Simulation complete. Open BrowserTrust and refresh to inspect observed events and any evidence-backed findings.');
-      } catch (error) {
-        setStatus(`${error.message || 'Simulation failed'}. Confirm npm run testbed is running and inspect the browser console.`, true);
-      } finally {
-        buttons.forEach(button => button.disabled = false);
-      }
-    });
-  </script>
+  <script src="./app.js" defer></script>
 </body>
 </html>
