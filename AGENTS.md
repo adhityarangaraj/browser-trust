@@ -21,7 +21,7 @@ Phase 3 adds deterministic local analysis, persisted evidence-backed findings, d
 | Validation, storage, ingestion | `src/core/` | service worker |
 | Deterministic rules, findings, assessment | `src/analysis/` | service worker/popup pure logic |
 | Settings and site access | `src/config/` | extension contexts |
-| UI | `src/popup/` | popup |
+| UI | `src/popup/` | popup and activity extension page |
 | Schema and messages | `src/shared/` | shared |
 | Local test fixture | `testbed/` | standalone Node process/browser page; never imported by extension |
 

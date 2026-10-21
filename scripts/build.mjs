@@ -37,6 +37,7 @@ const configs = [
 async function copyStatic() {
   await cp('public', outdir, { recursive: true });
   await cp('src/popup/popup.html', `${outdir}/popup.html`);
+  await cp('src/popup/activity.html', `${outdir}/activity.html`);
   await cp('src/popup/popup.css', `${outdir}/popup.css`);
 }
 
