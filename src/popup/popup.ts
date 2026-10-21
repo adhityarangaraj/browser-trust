@@ -36,12 +36,20 @@ const eventsList = el('events-list');
 const clearEvents = el<HTMLButtonElement>('clear-events');
 const refreshButton = el<HTMLButtonElement>('refresh');
 const refreshStatus = el('refresh-status');
+const behaviorList = el('behavior-list');
+const activityLink = document.querySelector<HTMLAnchorElement>('.view-activity');
+const activityPage = document.body.dataset.page === 'activity';
 
 interface ActiveTab { url?: string; id?: number; }
 let currentTab: ActiveTab = {};
 let requiredPermissions: chrome.runtime.ManifestPermission[] = [];
 
 async function activeTab(): Promise<ActiveTab> {
+  const requestedId = new URLSearchParams(location.search).get('tab');
+  if (activityPage && requestedId) {
+    const tab = await chrome.tabs.get(Number(requestedId));
+    return { url: tab.url, id: tab.id };
+  }
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   return { url: tab?.url, id: tab?.id };
 }
@@ -189,7 +197,7 @@ function renderFindings(findings: Finding[], events: BrowserTrustEvent[]): void 
   findingsEmpty.hidden = findings.length > 0;
   const byId = new Map(events.map((event) => [event.id, event]));
   const visibleEventIds = new Set(events.slice(0, 15).map((event) => event.id));
-  for (const item of findings.slice(0, 20)) findingsList.append(appendFinding(item, byId, visibleEventIds));
+  for (const item of findings.slice(0, activityPage ? 500 : 3)) findingsList.append(appendFinding(item, byId, visibleEventIds));
 }
 
 function renderDestinations(events: BrowserTrustEvent[], findings: Finding[]): void {
@@ -197,7 +205,7 @@ function renderDestinations(events: BrowserTrustEvent[], findings: Finding[]): v
   const summaries = summarizeDestinations(events);
   const visibleEventIds = new Set(events.slice(0, 15).map((event) => event.id));
   destinationsEmpty.hidden = summaries.length > 0;
-  for (const destination of summaries.slice(0, 12)) {
+  for (const destination of summaries.slice(0, activityPage ? 1000 : 3)) {
     const row = document.createElement('li');
     const host = document.createElement('p');
     host.className = 'destination-host';
@@ -233,21 +241,45 @@ function renderDestinations(events: BrowserTrustEvent[], findings: Finding[]): v
 function renderTimeline(events: BrowserTrustEvent[]): void {
   eventsList.replaceChildren();
   eventsEmpty.hidden = events.length > 0;
-  for (const event of events.slice(0, 15)) {
+  for (const event of events.slice(0, activityPage ? 1000 : 4)) {
     const row = document.createElement('li');
     row.id = `event-${event.id}`;
     const label = document.createElement('span');
     label.className = 'event-label';
     label.textContent = eventLabel(event);
-    const when = document.createElement('span');
-    when.className = 'meta';
-    when.textContent = ` · ${formatTime(event.timestamp)} · ${event.provenance}`;
-    const source = document.createElement('span');
-    source.className = 'event-source';
-    source.textContent = `${event.source.origin}${event.destination?.host ? ` → ${event.destination.host}` : ''} · ${event.evidence.mechanism} (${event.evidence.collector})`;
-    row.append(label, when, source);
+    row.append(label);
+    if (activityPage) {
+      const when = document.createElement('span');
+      when.className = 'meta';
+      when.textContent = ` · ${formatTime(event.timestamp)} · ${event.provenance}`;
+      const source = document.createElement('span');
+      source.className = 'event-source';
+      source.textContent = `${event.source.origin}${event.destination?.host ? ` → ${event.destination.host}` : ''} · ${event.evidence.mechanism} (${event.evidence.collector})`;
+      row.append(when, source);
+    } else if (event.destination?.host) {
+      const destination = document.createElement('span');
+      destination.className = 'meta';
+      destination.textContent = ` · ${event.destination.host}`;
+      row.append(destination);
+    }
     eventsList.append(row);
   }
+}
+
+function renderBehavior(events: BrowserTrustEvent[], findings: Finding[]): void {
+  behaviorList.replaceChildren();
+  const labels = new Set<string>();
+  for (const event of events) {
+    if (event.action === 'form.submitted' || event.action === 'form.submit_called') labels.add('Form submission observed');
+    if (event.category === 'network') labels.add('Network requests observed');
+    if (event.category === 'storage') labels.add('Browser storage activity observed');
+    if (['geolocation.requested', 'clipboard.read', 'media.requested'].includes(event.action)) labels.add('Sensitive browser capability activity observed');
+  }
+  if (findings.length === 0 && events.length > 0) labels.add('No configured rule matched the observed activity');
+  for (const label of [...labels].slice(0, 4)) {
+    const item = document.createElement('li'); item.textContent = label; behaviorList.append(item);
+  }
+  if (!labels.size) { const item = document.createElement('li'); item.textContent = 'No behavior recorded for this page yet.'; behaviorList.append(item); }
 }
 
 function showError(error: unknown): void {
@@ -267,6 +299,7 @@ async function refresh(): Promise<void> {
       activeTab(),
     ]);
     currentTab = tab;
+    if (activityLink) activityLink.href = `activity.html?tab=${encodeURIComponent(String(tab.id ?? ''))}`;
     renderMonitoring(state);
     const site = analyzeUrl(tab.url);
     const siteAccessGranted = renderCoverage(state, tab.url);
@@ -285,6 +318,7 @@ async function refresh(): Promise<void> {
     networkCount.textContent = String(assessment.events.filter((event) => event.category === 'network').length);
     findingCount.textContent = String(assessment.findingCount);
     renderFindings(assessment.findings, assessment.events);
+    renderBehavior(assessment.events, assessment.findings);
     renderDestinations(assessment.events, assessment.findings);
     renderTimeline(assessment.events);
     clearEvents.disabled = events.length === 0 && findings.length === 0;

@@ -2,7 +2,7 @@
 
 BrowserTrust is a standalone Chrome Manifest V3 extension that records selected website activity, tracks observed network destinations, and presents deterministic evidence-backed findings locally. The local test site is only a fixture; extension code does not import or depend on it.
 
-**Status: Phase 3 implementation.** The event pipeline, deterministic analysis, local findings store, destination summary, and popup assessment are implemented. A real Chrome demonstration has not yet been verified in this workspace; see [Verification](#verification).
+**Status: Phase 3 implementation.** The event pipeline, deterministic analysis, local findings store, destination summary, assessment-first popup, and View Activity page are implemented. A real Chrome demonstration has not yet been verified in this workspace; see [Verification](#verification).
 
 ## Requirements and commands
 
@@ -56,7 +56,7 @@ These rules produce review findings, not a verdict that a website is safe or mal
 
 ## Assessment and popup
 
-The popup shows the active hostname and permission coverage, an evidence-based assessment, event/network/finding counts, expandable findings, destination groups, and a recent event timeline. **Refresh** reloads stored state; **Clear activity** clears stored events and findings.
+The popup is assessment-first: it shows the active hostname and monitoring status, an evidence-based assessment, observed-behavior summary, event/network/finding counts, three latest findings, a compact destination preview, and four recent events. Finding details expand inline. **View Activity** opens a full extension page for the same active tab and stored events/findings, with complete findings, destinations, and retained timeline. **Refresh** reloads state; **Clear activity** clears events and findings from either view. Both views use the same assessment and background storage APIs.
 
 Assessment states:
 
@@ -99,3 +99,5 @@ The testbed accepts only its fixed synthetic JSON payload, enforces a small requ
 ## Verification
 
 Automated type, unit, testbed, and build commands are available above. A passing build or unit suite does not prove Chrome permission prompts, dynamic registration, event delivery, or popup behavior work together. Manual Chrome verification must include the local demo, monitoring-disabled state, missing-permission state, empty state, and at least one permitted ordinary website before Phase 3 is called demo-ready.
+
+Latest workspace result: typecheck, all 89 Vitest tests, and build passed. The combined `npm run check` is currently blocked by a testbed fixture assertion that expects `A suspicious website`, while the fixture page currently says `Suspicious behavior demo` (8/9 Node server tests passed). Chrome/Chromium was not available on PATH, so the redesigned popup and activity page have not been browser-verified.

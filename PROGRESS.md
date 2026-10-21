@@ -9,10 +9,14 @@ Implemented in the existing Phase 2 architecture:
 - Findings include supporting event IDs and timestamps, source/destination where available, evidence strength, and explicit limitations. Request bodies and sensitive field values are not collected.
 - Added grouped destination summaries that retain observation counts and label browser metadata versus page-hook evidence.
 - Reworked the popup around monitoring and permission coverage, evidence-based assessment states, event/network/finding counts, expandable evidence, destinations, and recent activity.
+- Redesigned the popup as a dark, assessment-first summary with observed-behavior labels and compact previews; added a View Activity extension page using the same stored events and findings.
 - Kept the product general-purpose; the loopback testbed remains separate from extension source code.
 - Updated README and agent guidance. `AGENTS.md` explicitly requires reading `sol.md` before planning or implementation.
 
 ## Verification in this workspace
+
+- Current redesign verification: `npm.cmd run typecheck` passed as the first stage of `npm.cmd run check`; Vitest passed (17 files, 89 tests); `npm.cmd run build` passed and emitted the popup and activity page assets. `npm.cmd run check` did not complete because the existing testbed server test expects the text `A suspicious website`, while `testbed/index.html` currently contains `Suspicious behavior demo` and `See what gets flagged.` (8/9 Node tests passed). This mismatch is outside the UI redesign and remains unresolved.
+- `git diff --check` passed. Chrome, Chromium, and Edge executables were not available on PATH, so extension loading and browser UI/state checks could not be performed.
 
 - `npm.cmd run typecheck`: passed.
 - `vitest run --maxWorkers=1`: passed, 17 files and 89 tests. The default highly parallel run hit a timeout in the DOM mutation-cap test; the single-worker run passed. The package test script now uses one worker for repeatable execution.
@@ -20,6 +24,7 @@ Implemented in the existing Phase 2 architecture:
 - `npm.cmd run build`: passed and generated `dist/` bundles.
 - `npm.cmd run check` after the script update: passed end to end (typecheck, all 89 Vitest tests, all 5 collector tests, and build).
 - No real Chrome/Chromium end-to-end demo or ordinary-site check was performed. Browser presence alone does not verify extension permissions, dynamic script registration, event delivery, or popup rendering.
+- The redesigned popup and View Activity navigation have not been verified in Chrome/Chromium.
 
 ## Remaining before Phase 3 is demo-ready
 

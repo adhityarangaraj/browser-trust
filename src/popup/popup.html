@@ -8,18 +8,7 @@
   </head>
   <body>
     <header class="topbar">
-      <div class="brand">
-        <div class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
-            <path d="M12 2L3 6.5V12C3 16.75 6.96 21.22 12 22C17.04 21.22 21 16.75 21 12V6.5L12 2Z" fill="rgba(255,255,255,0.15)" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
-            <path d="M9 12L11 14L15 10" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <div>
-          <h1>BrowserTrust</h1>
-          <p class="brand-sub">WEBSITE ACTIVITY MONITOR</p>
-        </div>
-      </div>
+      <div class="brand"><span class="brand-mark" aria-hidden="true">B</span><div><h1>BrowserTrust</h1><p id="site-host" class="host-pill">Current website</p></div></div>
       <label class="switch" title="Turn monitoring on or off">
         <input type="checkbox" id="monitoring-toggle" aria-label="Monitoring enabled" />
         <span class="slider"></span>
@@ -39,15 +28,16 @@
         <div class="stat-card"><strong id="network-count">0</strong><span>Network</span></div>
         <div class="stat-card"><strong id="finding-count">0</strong><span>Findings</span></div>
       </section>
-      <section class="coverage-section panel-section card-section">
-        <div class="section-heading"><div><p class="section-kicker">THIS WEBSITE</p><h2>Coverage</h2></div><span id="site-host" class="host-pill">No page</span></div>
-        <p id="site-status" class="muted coverage-detail">Checking this page…</p>
+
+      <section class="coverage-section">
+        <div class="section-heading"><h2>Monitoring</h2></div>
+        <p id="site-status" class="muted">Checking this page…</p>
         <div class="actions">
           <button id="allow-site" hidden></button>
           <button id="remove-site" class="secondary" hidden>Remove site access</button>
           <button id="allow-all" class="secondary" hidden>Allow all websites</button>
         </div>
-        <ul id="collectors-list" class="collector-list"></ul>
+        <ul id="collectors-list" class="collector-list" hidden></ul>
         <button id="enable-permissions" class="secondary" hidden>Grant optional permissions</button>
       </section>
       <section class="panel-section card-section">
@@ -55,8 +45,14 @@
         <p id="findings-empty" class="empty muted">No findings for this page.</p>
         <ul id="findings-list" class="stack-list"></ul>
       </section>
-      <section class="panel-section card-section">
-        <div class="section-heading"><div><p class="section-kicker">WHERE ACTIVITY WENT</p><h2>Destinations</h2></div><span class="section-mark" aria-hidden="true">02</span></div>
+
+      <section class="behavior-section">
+        <div class="section-heading"><h2>Observed behavior</h2></div>
+        <ul id="behavior-list" class="behavior-list"></ul>
+      </section>
+
+      <section class="destinations-section">
+        <div class="section-heading"><h2>Destinations</h2></div>
         <p id="destinations-empty" class="empty muted">No network destinations observed for this page.</p>
         <ul id="destinations-list" class="stack-list"></ul>
       </section>
@@ -67,7 +63,8 @@
       </section>
     </main>
     <footer>
-      <p class="footer-disclaimer">Evidence is limited to granted access and observed browser APIs. No finding is not proof of safety.</p>
+      <a class="view-activity" href="activity.html" target="_blank">View Activity <span aria-hidden="true">→</span></a>
+      <p>Coverage is limited to granted access and observable browser behavior.</p>
       <div class="actions footer-actions">
         <button id="refresh" class="secondary">↺ Refresh</button>
         <button id="clear-events" class="quiet-danger">Clear activity</button>
