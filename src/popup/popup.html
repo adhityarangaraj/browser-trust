@@ -14,19 +14,15 @@
         <span class="slider"></span>
       </label>
     </header>
+
     <div id="error-box" class="notice error" role="alert" hidden></div>
-    <div class="status-line"><span class="status-dot" aria-hidden="true"></span><p id="monitoring-status" class="monitoring-status" aria-live="polite">Loading status…</p></div>
+    <p id="monitoring-status" class="monitoring-status" aria-live="polite">Loading status…</p>
+
     <main>
       <section class="assessment-card" id="assessment-card" data-state="insufficient-evidence" aria-live="polite">
-        <p class="eyebrow"><span class="assessment-icon" aria-hidden="true">!</span> SITE CHECK</p>
+        <p class="eyebrow">Current assessment</p>
         <h2 id="assessment-title">Loading…</h2>
         <p id="assessment-explanation">Checking monitoring coverage and recent activity.</p>
-        <div class="assessment-foot">Based on observed activity and current access</div>
-      </section>
-      <section class="summary-grid" aria-label="Activity summary">
-        <div class="stat-card"><strong id="event-count">0</strong><span>Observations</span></div>
-        <div class="stat-card"><strong id="network-count">0</strong><span>Network</span></div>
-        <div class="stat-card"><strong id="finding-count">0</strong><span>Findings</span></div>
       </section>
 
       <section class="coverage-section">
@@ -40,8 +36,15 @@
         <ul id="collectors-list" class="collector-list" hidden></ul>
         <button id="enable-permissions" class="secondary" hidden>Grant optional permissions</button>
       </section>
-      <section class="panel-section card-section">
-        <div class="section-heading"><div><p class="section-kicker">NEEDS YOUR ATTENTION</p><h2>Findings</h2></div><span class="section-mark" aria-hidden="true">01</span></div>
+
+      <section class="summary-grid" aria-label="Activity summary">
+        <div><strong id="event-count">0</strong><span>observations</span></div>
+        <div><strong id="network-count">0</strong><span>network</span></div>
+        <div><strong id="finding-count">0</strong><span>findings</span></div>
+      </section>
+
+      <section>
+        <div class="section-heading"><h2>Findings</h2></div>
         <p id="findings-empty" class="empty muted">No findings for this page.</p>
         <ul id="findings-list" class="stack-list"></ul>
       </section>
@@ -56,21 +59,24 @@
         <p id="destinations-empty" class="empty muted">No network destinations observed for this page.</p>
         <ul id="destinations-list" class="stack-list"></ul>
       </section>
-      <section class="panel-section card-section">
-        <div class="section-heading"><div><p class="section-kicker">OBSERVED ON THIS PAGE</p><h2>Recent activity</h2></div><span class="section-mark" aria-hidden="true">03</span></div>
+
+      <section>
+        <div class="section-heading"><h2>Recent activity</h2></div>
         <p id="events-empty" class="empty muted">No activity observed yet.</p>
         <ol id="events-list" class="timeline"></ol>
       </section>
     </main>
+
     <footer>
       <a class="view-activity" href="activity.html" target="_blank">View Activity <span aria-hidden="true">→</span></a>
       <p>Coverage is limited to granted access and observable browser behavior.</p>
       <div class="actions footer-actions">
-        <button id="refresh" class="secondary">↺ Refresh</button>
+        <button id="refresh" class="secondary">Refresh</button>
         <button id="clear-events" class="quiet-danger">Clear activity</button>
       </div>
       <p id="refresh-status" class="muted" role="status" aria-live="polite"></p>
     </footer>
+
     <script src="popup.js"></script>
   </body>
 </html>
