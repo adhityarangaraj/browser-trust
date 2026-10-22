@@ -25,7 +25,7 @@ Phase 3 adds deterministic local analysis, persisted evidence-backed findings, d
 | Schema and messages | `src/shared/` | shared |
 | Local test fixture | `testbed/` | standalone Node process/browser page; never imported by extension |
 
-Entry points are bundled by `scripts/build.mjs`: `src/background/index.ts` to `background.js` (ESM), `src/content/index.ts` to `content.js` (IIFE), `src/page-hooks/index.ts` to `page-hook.js` (IIFE), `src/popup/popup.ts` to `popup.js` (IIFE), and `src/dashboard/dashboard.tsx` to `dashboard.js` (React IIFE). Static extension files are copied into `dist/`. The dashboard is a separate placeholder page and does not yet access browser data.
+Entry points are bundled by `scripts/build.mjs`: `src/background/index.ts` to `background.js` (ESM), `src/content/index.ts` to `content.js` (IIFE), `src/page-hooks/index.ts` to `page-hook.js` (IIFE), `src/popup/popup.ts` to `popup.js` (IIFE), and `src/dashboard/dashboard.tsx` to `dashboard.js` (React IIFE). Static extension files and locally bundled Inter font assets are copied into `dist/`. The dashboard does not yet access browser data.
 
 **All events go through `EventPipeline`** (`emit` for collectors, `ingestFromContent` for content scripts). No other module writes events to storage.
 

@@ -29,7 +29,7 @@ The repository uses:
 - Chrome Extension Manifest V3.
 - esbuild through `scripts/build.mjs`; build output is `dist/`.
 - Vitest for automated tests.
-- Plain HTML/CSS/TypeScript for the popup and activity page; a separate React/TypeScript dashboard page provides placeholder feature navigation.
+- Plain HTML/CSS/TypeScript for the popup and activity page; a separate React/TypeScript dashboard provides responsive placeholder views, with an illustrative Sites & Activity UI and no browser-history or time-tracking integration.
 - `chrome.storage.local` for bounded local event storage.
 - A local Node.js testbed and collector.
 

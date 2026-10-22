@@ -2,7 +2,7 @@
 
 BrowserTrust is a standalone Chrome Manifest V3 extension that records selected website activity, tracks observed network destinations, and presents deterministic evidence-backed findings locally. The local test site is only a fixture; extension code does not import or depend on it.
 
-**Status: Phase 3 implementation; dashboard foundation added.** The event pipeline, deterministic analysis, local findings store, destination summary, assessment-first popup, and View Activity page are implemented. A separate React dashboard page is included as a local-only placeholder foundation; its feature views do not read browser data yet. A real Chrome demonstration has not yet been verified in this workspace; see [Verification](#verification).
+**Status: Phase 3 implementation; dashboard foundation added.** The event pipeline, deterministic analysis, local findings store, destination summary, assessment-first popup, and View Activity page are implemented. A separate React dashboard page provides the refined navigation and presentation foundation. Its Sites & Activity view uses clearly labelled sample data; browser-history and time-tracking integrations are not implemented. A real Chrome demonstration has not yet been verified in this workspace; see [Verification](#verification).
 
 ## Requirements and commands
 
@@ -10,7 +10,7 @@ BrowserTrust is a standalone Chrome Manifest V3 extension that records selected 
 - Node.js 20 or newer and npm
 - TypeScript, esbuild, Vitest, jsdom for DOM tests, and Node's built-in test runner
 - No extension backend, database, cloud service, or remote analysis
-- React dashboard is bundled locally; it makes no network requests
+- React dashboard, Lucide icons, and Inter font files are bundled locally; the dashboard makes no network requests
 
 ```bash
 npm ci
@@ -25,7 +25,7 @@ npm run format:check  # Prettier check
 
 To load the extension, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select the generated `dist/` directory. After each build, reload the extension from that page.
 
-The standalone dashboard page is at `chrome-extension://<installed-extension-id>/dashboard.html` after loading the extension. Replace the placeholder with the ID shown on `chrome://extensions`; no extension ID is hardcoded. The page currently contains labelled preview content only and does not access browser history, permissions, or Trust Monitor data.
+The standalone dashboard page is at `chrome-extension://<installed-extension-id>/dashboard.html` after loading the extension. Replace the placeholder with the ID shown on `chrome://extensions`; no extension ID is hardcoded. The navigation groups Overview, Sites & Activity, and Permissions under **Your browser**; Web Recall, Follow-up Tracker, and Context Keeper under **Your tools**; and Trust Monitor under **Privacy**. Sites & Activity uses illustrative sample content only and marks active browsing time as not measured. Dashboard views do not yet access browser history, change permissions, or read Trust Monitor data.
 
 ## Permissions and coverage
 
