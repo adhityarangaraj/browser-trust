@@ -59,7 +59,7 @@ These rules produce review findings, not a verdict that a website is safe or mal
 
 ## Assessment and popup
 
-The popup is assessment-first: it shows the active hostname and monitoring status, an evidence-based assessment, observed-behavior summary, event/network/finding counts, three latest findings, a compact destination preview, and four recent events. Finding details expand inline. **View Activity** opens a full extension page for the same active tab and stored events/findings, with complete findings, destinations, and retained timeline. **Refresh** reloads state; **Clear activity** clears events and findings from either view. Both views use the same assessment and background storage APIs.
+The popup is assessment-first: it shows the active hostname and monitoring status, an evidence-based assessment, observed-behavior summary, event/network/finding counts, three latest findings, a compact destination preview, and four recent events. Finding details expand inline. **View Activity** opens a full extension page for the same active tab and stored events/findings, with complete findings, destinations, and retained timeline. The activity page also exposes a search box and category chips that filter the timeline client-side without re-fetching, and clicking a supporting-event link in any finding or destination row scrolls to the row and briefly highlights it so the connection is visible even when it was already on screen. **Refresh** reloads state; **Clear activity** clears events and findings from either view. Both views use the same assessment and background storage APIs.
 
 Assessment states:
 

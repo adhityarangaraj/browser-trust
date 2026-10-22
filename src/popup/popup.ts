@@ -39,6 +39,16 @@ const refreshStatus = el('refresh-status');
 const behaviorList = el('behavior-list');
 const activityLink = document.querySelector<HTMLAnchorElement>('.view-activity');
 const activityPage = document.body.dataset.page === 'activity';
+const eventsSearchInput = document.getElementById('events-search') as HTMLInputElement | null;
+const eventsCategoryFilters = document.getElementById('events-category-filters');
+
+const TIMELINE_CATEGORIES: readonly string[] = ['page', 'dom', 'form', 'storage', 'network', 'capability'];
+const timelineCategoryEnabled = new Map<string, boolean>(
+  TIMELINE_CATEGORIES.map((category) => [category, true]),
+);
+let timelineSearchQuery = '';
+let timelineAllEvents: BrowserTrustEvent[] = [];
+let flashResetTimer: number | undefined;
 
 interface ActiveTab { url?: string; id?: number; }
 let currentTab: ActiveTab = {};
@@ -245,10 +255,26 @@ function renderDestinations(events: BrowserTrustEvent[], findings: Finding[]): v
   }
 }
 
+function matchesTimelineFilters(event: BrowserTrustEvent): boolean {
+  if (!timelineCategoryEnabled.get(event.category)) return false;
+  if (!timelineSearchQuery) return true;
+  const haystack = [
+    eventLabel(event),
+    event.action,
+    event.source.origin,
+    event.destination?.host ?? '',
+    event.evidence.collector,
+    event.evidence.mechanism,
+  ].join(' ').toLowerCase();
+  return haystack.includes(timelineSearchQuery);
+}
+
 function renderTimeline(events: BrowserTrustEvent[]): void {
   eventsList.replaceChildren();
-  eventsEmpty.hidden = events.length > 0;
-  for (const event of events.slice(0, activityPage ? 1000 : 4)) {
+  timelineAllEvents = events;
+  const visible = activityPage ? events.filter(matchesTimelineFilters) : events;
+  eventsEmpty.hidden = visible.length > 0;
+  for (const event of visible.slice(0, activityPage ? 1000 : 4)) {
     const row = document.createElement('li');
     row.id = `event-${event.id}`;
     const label = document.createElement('span');
@@ -271,6 +297,36 @@ function renderTimeline(events: BrowserTrustEvent[]): void {
     }
     eventsList.append(row);
   }
+}
+
+function renderTimelineFilters(): void {
+  if (!activityPage || !eventsCategoryFilters) return;
+  eventsCategoryFilters.replaceChildren();
+  for (const category of TIMELINE_CATEGORIES) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `chip${timelineCategoryEnabled.get(category) ? ' chip-on' : ''}`;
+    button.textContent = category;
+    button.setAttribute('aria-pressed', String(timelineCategoryEnabled.get(category) === true));
+    button.addEventListener('click', () => {
+      timelineCategoryEnabled.set(category, !(timelineCategoryEnabled.get(category) ?? false));
+      button.classList.toggle('chip-on', timelineCategoryEnabled.get(category) === true);
+      button.setAttribute('aria-pressed', String(timelineCategoryEnabled.get(category) === true));
+      renderTimeline(timelineAllEvents);
+    });
+    eventsCategoryFilters.append(button);
+  }
+}
+
+function flashEvent(id: string): void {
+  const target = document.getElementById(id);
+  if (!target) return;
+  target.classList.add('flash');
+  if (flashResetTimer !== undefined) window.clearTimeout(flashResetTimer);
+  flashResetTimer = window.setTimeout(() => {
+    target.classList.remove('flash');
+    flashResetTimer = undefined;
+  }, 1500);
 }
 
 function renderBehavior(events: BrowserTrustEvent[], findings: Finding[]): void {
@@ -379,6 +435,30 @@ enablePermissions.addEventListener('click', async () => {
 });
 
 refreshButton.addEventListener('click', () => void refresh());
+
+if (eventsSearchInput) {
+  eventsSearchInput.addEventListener('input', () => {
+    timelineSearchQuery = eventsSearchInput.value.trim().toLowerCase();
+    renderTimeline(timelineAllEvents);
+  });
+}
+
+renderTimelineFilters();
+
+// Clicking a supporting-event link scrolls to the timeline row AND briefly
+// highlights it so the connection is visible, even when it was already in view.
+document.addEventListener('click', (clickEvent) => {
+  const target = clickEvent.target;
+  if (!(target instanceof HTMLAnchorElement)) return;
+  const href = target.getAttribute('href') ?? '';
+  if (!href.startsWith('#event-') && !href.startsWith('#')) return;
+  const id = href.slice(1);
+  const row = document.getElementById(id);
+  if (!row) return;
+  clickEvent.preventDefault();
+  row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  flashEvent(id);
+});
 clearEvents.addEventListener('click', async () => {
   clearEvents.disabled = true;
   try {

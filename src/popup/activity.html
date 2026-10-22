@@ -16,7 +16,15 @@
       <section><div class="section-heading"><h2>Observed behavior</h2></div><ul id="behavior-list" class="behavior-list"></ul></section>
       <section><div class="section-heading"><h2>Findings</h2></div><p id="findings-empty" class="empty muted">No findings for this page.</p><ul id="findings-list" class="stack-list"></ul></section>
       <section><div class="section-heading"><h2>Destinations</h2></div><p id="destinations-empty" class="empty muted">No network destinations observed for this page.</p><ul id="destinations-list" class="stack-list"></ul></section>
-      <section><div class="section-heading"><h2>Activity timeline</h2></div><p id="events-empty" class="empty muted">No activity observed yet.</p><ol id="events-list" class="timeline"></ol></section>
+      <section>
+        <div class="section-heading"><h2>Activity timeline</h2></div>
+        <div class="filter-bar" role="group" aria-label="Filter timeline">
+          <input id="events-search" type="search" placeholder="Search events, hosts…" aria-label="Search timeline" />
+          <div id="events-category-filters" class="chip-row" role="group" aria-label="Category filters"></div>
+        </div>
+        <p id="events-empty" class="empty muted">No activity observed yet.</p>
+        <ol id="events-list" class="timeline"></ol>
+      </section>
     </main>
     <footer><div class="actions footer-actions"><button id="refresh" class="secondary">Refresh</button><button id="clear-events" class="quiet-danger">Clear activity</button></div><p id="refresh-status" class="muted" role="status" aria-live="polite"></p><p>Observed events and inferred relationships are shown separately. Coverage depends on permissions and browser visibility.</p></footer>
     <script src="popup.js"></script>
