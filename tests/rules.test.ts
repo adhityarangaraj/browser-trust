@@ -2,13 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { analyze } from '../src/analysis/engine';
 import {
   capabilityNetworkRule,
+  dynamicThirdPartyScriptRule,
   formNetworkRule,
+  hiddenCrossOriginIframeRule,
   repeatedExternalPostRule,
   rules,
+  scriptedFormNetworkRule,
   sensitiveCapabilityRule,
 } from '../src/analysis/rules';
 import { createEvent } from '../src/core/normalize';
-import type { BrowserTrustEvent, EventCategory } from '../src/shared/types';
+import type { BrowserTrustEvent, EventCategory, JsonValue } from '../src/shared/types';
 
 function event(args: {
   id: string;
@@ -151,5 +154,70 @@ describe('deterministic rules', () => {
   it('does not throw for missing optional destination metadata', () => {
     const incomplete = event({ id: 'network', timestamp: 2, category: 'network', action: 'request.sent', tabId: 7, mechanism: 'extension-api' });
     expect(() => analyze(rules, [form(), incomplete])).not.toThrow();
+  });
+
+  function dom(args: {
+    id: string;
+    timestamp: number;
+    tag: 'iframe' | 'script';
+    host?: string;
+    isCrossOrigin?: boolean;
+    isThirdParty?: boolean;
+    hiddenHint?: boolean;
+    initial?: boolean;
+  }): BrowserTrustEvent {
+    const details: Record<string, JsonValue> = { tag: args.tag, initial: args.initial ?? false };
+    if (args.hiddenHint !== undefined) details.hiddenHint = args.hiddenHint;
+    return createEvent({
+      category: 'dom',
+      action: 'element.added',
+      source: { origin: 'https://shop.example', tabId: 7 },
+      ...(args.host ? { destination: {
+        host: args.host,
+        origin: `https://${args.host}`,
+        ...(args.isCrossOrigin !== undefined ? { isCrossOrigin: args.isCrossOrigin } : {}),
+        ...(args.isThirdParty !== undefined ? { isThirdParty: args.isThirdParty } : {}),
+      } } : {}),
+      evidence: { collector: 'dom.mutations', mechanism: 'content-script', details },
+      provenance: 'observed',
+    }, { newId: () => args.id, now: () => args.timestamp });
+  }
+
+  it('flags hidden cross-origin iframes but ignores visible or same-origin ones', () => {
+    const hiddenCross = dom({ id: 'iframe-hc', timestamp: 1, tag: 'iframe', host: 'tracker.example', isCrossOrigin: true, hiddenHint: true });
+    const findings = analyze([hiddenCrossOriginIframeRule], [hiddenCross]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ severity: 'medium', destinationHost: 'tracker.example' });
+    const visibleCross = dom({ id: 'iframe-vc', timestamp: 2, tag: 'iframe', host: 'tracker.example', isCrossOrigin: true, hiddenHint: false });
+    expect(analyze([hiddenCrossOriginIframeRule], [visibleCross])).toEqual([]);
+    const hiddenSame = dom({ id: 'iframe-hs', timestamp: 3, tag: 'iframe', host: 'shop.example', isCrossOrigin: false, hiddenHint: true });
+    expect(analyze([hiddenCrossOriginIframeRule], [hiddenSame])).toEqual([]);
+  });
+
+  it('flags dynamically-injected cross-site scripts but ignores initial ones and same-site ones', () => {
+    const injected = dom({ id: 'script-inj', timestamp: 1, tag: 'script', host: 'cdn.other.net', isThirdParty: true, initial: false });
+    const findings = analyze([dynamicThirdPartyScriptRule], [injected]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.severity).toBe('low');
+    const initial = dom({ id: 'script-init', timestamp: 2, tag: 'script', host: 'cdn.other.net', isThirdParty: true, initial: true });
+    expect(analyze([dynamicThirdPartyScriptRule], [initial])).toEqual([]);
+    const sameSite = dom({ id: 'script-same', timestamp: 3, tag: 'script', host: 'static.shop.example', isThirdParty: false, initial: false });
+    expect(analyze([dynamicThirdPartyScriptRule], [sameSite])).toEqual([]);
+  });
+
+  it('correlates a scripted form.submit() with a later network request from the same page', () => {
+    const scripted = event({
+      id: 'scripted-form', timestamp: 1000, category: 'form', action: 'form.submit_called', tabId: 7,
+      host: 'collector.example', method: 'POST', mechanism: 'main-world-hook',
+    });
+    const findings = analyze([scriptedFormNetworkRule], [scripted, request('scripted-req', 10_000)]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]).toMatchObject({ severity: 'low', eventIds: ['scripted-form', 'scripted-req'] });
+    // Outside the window
+    expect(analyze([scriptedFormNetworkRule], [scripted, request('late', 31_001)])).toEqual([]);
+    // Different tab
+    expect(analyze([scriptedFormNetworkRule], [scripted, request('other-tab', 2000, 8)])).toEqual([]);
+    // The declarative formNetworkRule does not fire for a scripted submit (no `submit` event, no isTrusted)
+    expect(analyze([formNetworkRule], [scripted, request('scripted-req', 10_000)])).toEqual([]);
   });
 });

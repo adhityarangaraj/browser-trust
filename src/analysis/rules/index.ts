@@ -192,9 +192,95 @@ export const repeatedExternalPostRule: Rule = {
   },
 };
 
+export const hiddenCrossOriginIframeRule: Rule = {
+  id: 'dom.hidden-cross-origin-iframe',
+  description: 'Flags iframes added to the page that are both cross-origin and hidden via attributes or inline style.',
+  evaluate(event) {
+    if (event.category !== 'dom' || event.action !== 'element.added') return [];
+    if (event.evidence.details.tag !== 'iframe') return [];
+    if (event.evidence.details.hiddenHint !== true) return [];
+    const host = event.destination?.host;
+    if (!host) return [];
+    if (event.destination?.isCrossOrigin !== true) return [];
+    return [finding({
+      ruleId: this.id,
+      title: 'Hidden cross-origin iframe added',
+      category: 'communication',
+      explanation: `A hidden or zero-size iframe pointing to ${host} was added to the page. Hidden embeds from another origin can be used for silent tracking or beacons and warrant review.`,
+      severity: 'medium',
+      events: [event],
+      evidenceStrength: 'direct-observation',
+      limitations: [
+        'The hidden hint is derived from attributes and inline style only; computed CSS could still make the iframe visible, and attribute-hidden iframes have legitimate uses too.',
+        'A cross-origin iframe alone does not demonstrate malicious intent.',
+      ],
+      destinationHost: host,
+    })];
+  },
+};
+
+export const dynamicThirdPartyScriptRule: Rule = {
+  id: 'dom.dynamic-third-party-script',
+  description: 'Flags scripts injected after the initial page scan whose destination is on a different registrable domain than the page.',
+  evaluate(event) {
+    if (event.category !== 'dom' || event.action !== 'element.added') return [];
+    if (event.evidence.details.tag !== 'script') return [];
+    if (event.evidence.details.initial === true) return [];
+    const host = event.destination?.host;
+    if (!host) return [];
+    if (event.destination?.isThirdParty !== true) return [];
+    return [finding({
+      ruleId: this.id,
+      title: 'Script injected dynamically from a different site',
+      category: 'communication',
+      explanation: `A script element pointing to ${host} was added to the page after load. Dynamically injected cross-site scripts run with the page's privileges and may merit a closer look.`,
+      severity: 'low',
+      events: [event],
+      evidenceStrength: 'direct-observation',
+      limitations: [
+        'Many legitimate integrations load scripts from other sites; this rule does not establish malicious intent.',
+        'The script source was not fetched or inspected; only its injection is recorded.',
+      ],
+      destinationHost: host,
+    })];
+  },
+};
+
+export const scriptedFormNetworkRule: Rule = {
+  id: 'sequence.scripted-form-network',
+  description: 'Relates a scripted form.submit() call to a later browser-observed request within the same tab and page origin.',
+  evaluate(event, history) {
+    if (!isPageNetworkRequest(event)) return [];
+    const form = [...history].reverse().find((candidate) =>
+      candidate.category === 'form' && candidate.action === 'form.submit_called' &&
+      samePage(candidate, event) && inWindow(candidate, event, FORM_NETWORK_WINDOW_MS),
+    );
+    if (!form) return [];
+    const host = event.destination?.host;
+    return [finding({
+      ruleId: this.id,
+      title: 'Scripted form submission followed by a request',
+      category: 'communication',
+      explanation: `A page script called form.submit() and was followed by a browser-observed ${event.destination?.method ?? 'network'} request${host ? ` to ${host}` : ''} within 30 seconds from the same page context.`,
+      severity: 'low',
+      events: [form, event],
+      evidenceStrength: 'temporal-association',
+      limitations: [
+        NO_PAYLOAD_LIMITATION,
+        TEMPORAL_LIMITATION,
+        'The form submission was reported through a page-world hook that the page can forge or suppress.',
+      ],
+      ...(host ? { destinationHost: host } : {}),
+    })];
+  },
+};
+
 export const rules: readonly Rule[] = [
   formNetworkRule,
+  scriptedFormNetworkRule,
   sensitiveCapabilityRule,
   capabilityNetworkRule,
   repeatedExternalPostRule,
+  hiddenCrossOriginIframeRule,
+  dynamicThirdPartyScriptRule,
 ];
