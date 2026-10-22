@@ -34,6 +34,7 @@ import { sendRequest } from '../shared/messages';
 import { getHistoryRange, querySiteHistory, type HistoryActivityResult, type HistoryPeriod } from './history';
 import { PermissionManager } from './permission-manager';
 import { ContextKeeper } from './context-keeper';
+import { TrustMonitor } from './trust-monitor';
 
 type ViewId = 'overview' | 'sites' | 'permissions' | 'recall' | 'followups' | 'spaces' | 'trust';
 type SortKey = 'visits' | 'lastVisitTime' | 'host' | 'activeMs';
@@ -83,7 +84,7 @@ const headings: Record<ViewId, { title: string; description: string }> = {
   },
   trust: {
     title: 'Trust Monitor',
-    description: 'A future home for BrowserTrust site activity and findings.',
+    description: 'Review evidence-backed site assessments, findings, destinations, and activity.',
   },
 };
 
@@ -204,13 +205,15 @@ function App() {
             <PermissionManager />
           ) : activeView === 'spaces' ? (
             <ContextKeeper />
+          ) : activeView === 'trust' ? (
+            <TrustMonitor />
           ) : (
             <FeaturePlaceholder view={activeView} onNavigate={navigate} />
           )}
           <footer className="page-footer">
             <span>BrowserTrust dashboard</span>
             <span>
-              <span className="status-dot" /> {activeView === 'sites' || activeView === 'permissions' || activeView === 'spaces' ? 'Data and workspace snapshots stay on this device' : 'This view is a placeholder'}
+              <span className="status-dot" /> {activeView === 'sites' || activeView === 'permissions' || activeView === 'spaces' || activeView === 'trust' ? 'Data and workspace snapshots stay on this device' : 'This view is a placeholder'}
             </span>
           </footer>
         </div>
@@ -666,7 +669,7 @@ function FeaturePlaceholder({
   view,
   onNavigate,
 }: {
-  view: Exclude<ViewId, 'overview' | 'sites' | 'permissions' | 'spaces'>;
+  view: Exclude<ViewId, 'overview' | 'sites' | 'permissions' | 'spaces' | 'trust'>;
   onNavigate: (view: ViewId) => void;
 }) {
   const feature: Record<
@@ -685,17 +688,6 @@ function FeaturePlaceholder({
       description: 'Add reminders and renewals yourself, then review what is coming up.',
       rows: ['Create and edit reminders', 'Track renewal dates and intervals', 'Review upcoming dates'],
     },
-    trust: {
-      icon: ShieldCheck,
-      title: 'Evidence-backed site activity.',
-      description:
-        'The existing Trust Monitor remains in its current popup and activity page for now. Dashboard integration is planned for a later phase.',
-      rows: [
-        'Summarize observed site behavior',
-        'Review findings with their evidence',
-        'Understand monitoring coverage',
-      ],
-    },
   };
   const content = feature[view];
   const Icon = content.icon;
@@ -706,9 +698,7 @@ function FeaturePlaceholder({
           <Icon size={20} strokeWidth={1.8} aria-hidden="true" />
         </span>
         <div>
-          <p className="eyebrow">
-            {view === 'trust' ? 'PRIVACY' : 'YOUR TOOLS'}
-          </p>
+          <p className="eyebrow">YOUR TOOLS</p>
           <h2>{content.title}</h2>
           <p>{content.description}</p>
         </div>

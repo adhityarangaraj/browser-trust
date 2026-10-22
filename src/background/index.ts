@@ -13,7 +13,7 @@ import {
   syncContentScripts,
 } from '../config/access';
 import { clearFindingPreferences } from '../config/preferences';
-import { loadSettings, saveSettings } from '../config/settings';
+import { loadSettings, normalizeSiteOrigin, saveSettings } from '../config/settings';
 import { ActiveTimeTracker } from './activity-time-tracker';
 import { EventPipeline } from '../core/pipeline';
 import { chromeStorageAdapter, EventStore } from '../core/store';
@@ -89,6 +89,17 @@ async function handle(request: Request, sender: chrome.runtime.MessageSender): P
       // not leave a window open while content scripts are reconciled.
       collectorManager.setMonitoring(request.enabled);
       await reconcile();
+      return snapshot();
+    }
+    case 'set-site-ignored': {
+      if (typeof request.ignored !== 'boolean') throw new Error('ignored must be a boolean');
+      const origin = normalizeSiteOrigin(request.origin);
+      if (!origin) throw new Error('origin must be a valid HTTP(S) origin');
+      const settings = await loadSettings();
+      const ignoredOrigins = new Set(settings.ignoredOrigins);
+      if (request.ignored) ignoredOrigins.add(origin);
+      else ignoredOrigins.delete(origin);
+      await saveSettings({ ...settings, ignoredOrigins: [...ignoredOrigins] });
       return snapshot();
     }
     case 'list-events':

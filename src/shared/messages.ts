@@ -21,6 +21,10 @@ export interface MessageMap {
     request: { type: 'set-monitoring'; enabled: boolean };
     response: StateSnapshot;
   };
+  'set-site-ignored': {
+    request: { type: 'set-site-ignored'; origin: string; ignored: boolean };
+    response: StateSnapshot;
+  };
   'list-events': {
     request: { type: 'list-events'; limit?: number };
     response: BrowserTrustEvent[];

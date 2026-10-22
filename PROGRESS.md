@@ -1,5 +1,12 @@
 ﻿# Progress
 
+## Phase 5 — Trust Monitor dashboard integration
+
+- Connected the existing Trust Monitor sidebar destination to a React experience with security overview, findings, activity/report, and site detail views. It reads state, the retained 1,000-event ring buffer, and the retained 500-finding store through existing background messages.
+- Reused `assessSite`, `summarizeDestinations`, `buildReport`, and existing report formatters. Findings show their existing IDs, timestamps, evidence strength, and limitations; activity keeps source ordering, timestamps, provenance, and evidence references while adding local search/category filters.
+- Added ignored origins to the existing `bt.settings` record (up to 100 normalized HTTP(S) origins) through a validated background message. Ignoring only hides a site from the overview attention list; collection, history, findings, and direct site inspection continue. No permission, event schema, or parallel data store was added.
+- Added focused settings tests. Per the Phase 5 request, tests, typecheck, build, and `npm run check` were not run. Manual Chrome verification remains required for extension messaging, report actions, rendered states, and ignore/unignore behavior.
+
 ## Advanced Permissions dashboard surface
 
 - Added an opt-in Permissions manager to the existing React dashboard. It discovers a bounded set of hostnames from up to 30 days of local Chrome History, queries Chrome's effective content settings, and offers filters, sorting, per-site inspection, and confirmed blocking for supported settings.
