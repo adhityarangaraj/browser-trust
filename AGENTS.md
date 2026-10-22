@@ -23,13 +23,14 @@ Phase 3 adds deterministic local analysis, persisted evidence-backed findings, d
 | Settings and site access | `src/config/` | extension contexts |
 | UI | `src/popup/`, `src/dashboard/` | popup/activity pages and React dashboard extension page |
 | Dashboard history summaries | `src/dashboard/history.ts` | dashboard extension page, History API |
+| Context Keeper workspaces | `src/dashboard/context-workspaces.ts`, `context-tabs.ts`, `context-keeper.tsx` | dashboard page; local storage and optional Tabs API |
 | Estimated active-time tracking | `src/background/activity-time-tracker.ts`, `src/core/activity-time.ts` | service worker; bounded `chrome.storage.local` aggregates |
 | Schema and messages | `src/shared/` | shared |
 | Local test fixture | `testbed/` | standalone Node process/browser page; never imported by extension |
 
-Entry points are bundled by `scripts/build.mjs`: `src/background/index.ts` to `background.js` (ESM), `src/content/index.ts` to `content.js` (IIFE), `src/page-hooks/index.ts` to `page-hook.js` (IIFE), `src/popup/popup.ts` to `popup.js` (IIFE), and `src/dashboard/dashboard.tsx` to `dashboard.js` (React IIFE). Static extension files and locally bundled Inter font assets are copied into `dist/`. Sites & Activity and Permissions use optional local History/content-settings APIs after user action.
+Entry points are bundled by `scripts/build.mjs`: `src/background/index.ts` to `background.js` (ESM), `src/content/index.ts` to `content.js` (IIFE), `src/page-hooks/index.ts` to `page-hook.js` (IIFE), `src/popup/popup.ts` to `popup.js` (IIFE), and `src/dashboard/dashboard.tsx` to `dashboard.js` (React IIFE). Static extension files and locally bundled Inter font assets are copied into `dist/`. Sites & Activity, Permissions, and Context Keeper use their optional browser APIs after user action.
 
-The dashboard's optional `history` and `contentSettings` APIs are user-initiated and separate from the event pipeline. Effective settings do not reveal whether Chrome uses a per-site exception or a broader default.
+The dashboard's optional `history`, `contentSettings`, and `tabs` access is separate from the event pipeline and requested only for the corresponding user-initiated features. Context Keeper stores snapshots locally; it does not store live tab IDs. Effective content settings do not reveal whether Chrome uses a per-site exception or a broader default.
 
 **All events go through `EventPipeline`** (`emit` for collectors, `ingestFromContent` for content scripts). No other module writes events to storage.
 

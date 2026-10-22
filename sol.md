@@ -29,7 +29,7 @@ The repository uses:
 - Chrome Extension Manifest V3.
 - esbuild through `scripts/build.mjs`; build output is `dist/`.
 - Vitest for automated tests.
-- Plain HTML/CSS/TypeScript for the popup and activity page; a separate React/TypeScript dashboard includes opt-in local History summaries and estimated active-time tracking in Sites & Activity, plus an optional site-permission manager. Web Recall, Follow-up Tracker, Context Keeper, and Trust Monitor remain placeholders.
+- Plain HTML/CSS/TypeScript for the popup and activity page; a separate React/TypeScript dashboard includes opt-in local History summaries and estimated active-time tracking in Sites & Activity, an optional site-permission manager, and Context Keeper. Web Recall, Follow-up Tracker, and dashboard Trust Monitor remain placeholders.
 - `chrome.storage.local` for bounded local event storage.
 - A local Node.js testbed and collector.
 
@@ -60,7 +60,8 @@ Reuse the existing code. Do not recreate the project or add a second event pipel
 - `src/core/`: event validation, normalization, ingestion pipeline, and bounded local storage.
 - `src/analysis/`: deterministic rule engine, findings, evidence links, assessment logic.
 - `src/popup/`: extension UI and views.
-- `src/dashboard/`: separate React dashboard page, local History summary/query, and optional site-permission review; other planned views remain placeholders.
+- `src/dashboard/`: separate React dashboard page, local History summary/query, optional site-permission review, and Context Keeper UI.
+- `src/dashboard/context-workspaces.ts`, `context-tabs.ts`, and `context-keeper.tsx`: validated, bounded local workspace persistence, Tabs API integration, and dashboard UI.
 - `src/dashboard/permissions.ts` and `permission-manager.tsx`: optional, user-initiated site-settings review and a bounded local log of actions made by BrowserTrust.
 - `src/background/activity-time-tracker.ts`, `src/core/activity-time.ts`: opt-in, event-driven active-time estimates and bounded local aggregates.
 - `public/manifest.json`: Manifest V3 configuration.
@@ -272,8 +273,8 @@ Do not add new features at the expense of making this end-to-end scenario reliab
 
 ## 8. Later phases — not required for the Phase 3 demo
 
-### Phase 4 — Correlation quality and coverage improvements
-Improve deduplication, event lineage, permission coverage messaging, browser limitation handling, and detection precision. Add rules only when evidence and tests justify them.
+### Phase 4 — Context Keeper workspaces
+Context Keeper is implemented inside the React dashboard. It saves selected open HTTP(S) tabs into named local workspaces, preserves source window groups and tab order, supports library search/sort/edit/duplicate/delete, previews and selectively restores tabs with duplicate handling, and imports/exports versioned JSON. It uses the existing optional `tabs` permission only after user action and does not capture page contents, credentials, or live tab IDs in storage. Storage remains bounded in the Context Keeper service; unsupported URLs are excluded during capture and rejected during import.
 
 ### Phase 5 — Optional AI contextual analysis
 AI is not required for the R3 demo and must not delay Phase 3. Consider it only if it demonstrably improves explanations beyond deterministic rules. If added later, make it opt-in, send only minimized/normalized event data, disclose what leaves the device, and never send raw sensitive values by default. Keep deterministic checks functional without AI.

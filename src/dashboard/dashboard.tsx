@@ -5,7 +5,6 @@ import {
   ArrowDownWideNarrow,
   ArrowRight,
   Bell,
-  Bookmark,
   CalendarClock,
   Check,
   Clock3,
@@ -34,6 +33,7 @@ import {
 import { sendRequest } from '../shared/messages';
 import { getHistoryRange, querySiteHistory, type HistoryActivityResult, type HistoryPeriod } from './history';
 import { PermissionManager } from './permission-manager';
+import { ContextKeeper } from './context-keeper';
 
 type ViewId = 'overview' | 'sites' | 'permissions' | 'recall' | 'followups' | 'spaces' | 'trust';
 type SortKey = 'visits' | 'lastVisitTime' | 'host' | 'activeMs';
@@ -202,13 +202,15 @@ function App() {
             <SitesActivity />
           ) : activeView === 'permissions' ? (
             <PermissionManager />
+          ) : activeView === 'spaces' ? (
+            <ContextKeeper />
           ) : (
             <FeaturePlaceholder view={activeView} onNavigate={navigate} />
           )}
           <footer className="page-footer">
             <span>BrowserTrust dashboard</span>
             <span>
-              <span className="status-dot" /> {activeView === 'sites' || activeView === 'permissions' ? 'Data and permission reviews stay on this device' : 'This view is a placeholder'}
+              <span className="status-dot" /> {activeView === 'sites' || activeView === 'permissions' || activeView === 'spaces' ? 'Data and workspace snapshots stay on this device' : 'This view is a placeholder'}
             </span>
           </footer>
         </div>
@@ -231,7 +233,7 @@ function Overview({ onNavigate }: { onNavigate: (view: ViewId) => void }) {
       description: 'Review site access in one place',
       icon: ShieldCheck,
     },
-    { id: 'recall', title: 'Web Recall', description: 'Return to pages you want to keep', icon: Bookmark },
+    { id: 'spaces', title: 'Context Keeper', description: 'Save and restore tab workspaces', icon: PanelsTopLeft },
   ];
 
   return (
@@ -281,9 +283,9 @@ function Overview({ onNavigate }: { onNavigate: (view: ViewId) => void }) {
         <div>
           <strong>A foundation for your browser companion</strong>
           <p>
-            Sites & Activity includes local history summaries and optional active-time estimates. The Permissions
-            manager reviews recent sites and supported Chrome settings; reminders, saved workspaces, and Trust
-            Monitor integrations remain planned.
+            Sites & Activity includes local history summaries and optional active-time estimates. Permissions
+            reviews recent sites and supported Chrome settings, while Context Keeper saves local tab workspaces.
+            Web Recall, reminders, and Trust Monitor dashboard integrations remain planned.
           </p>
         </div>
       </section>
@@ -664,7 +666,7 @@ function FeaturePlaceholder({
   view,
   onNavigate,
 }: {
-  view: Exclude<ViewId, 'overview' | 'sites' | 'permissions'>;
+  view: Exclude<ViewId, 'overview' | 'sites' | 'permissions' | 'spaces'>;
   onNavigate: (view: ViewId) => void;
 }) {
   const feature: Record<
