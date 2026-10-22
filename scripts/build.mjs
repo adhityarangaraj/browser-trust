@@ -30,7 +30,9 @@ const configs = [
       content: 'src/content/index.ts',
       'page-hook': 'src/page-hooks/index.ts',
       popup: 'src/popup/popup.ts',
+      dashboard: 'src/dashboard/dashboard.tsx',
     },
+    jsx: 'automatic',
   },
 ];
 
@@ -39,6 +41,8 @@ async function copyStatic() {
   await cp('src/popup/popup.html', `${outdir}/popup.html`);
   await cp('src/popup/activity.html', `${outdir}/activity.html`);
   await cp('src/popup/popup.css', `${outdir}/popup.css`);
+  await cp('src/dashboard/dashboard.html', `${outdir}/dashboard.html`);
+  await cp('src/dashboard/dashboard.css', `${outdir}/dashboard.css`);
 }
 
 if (watch) {

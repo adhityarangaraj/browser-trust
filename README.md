@@ -2,7 +2,7 @@
 
 BrowserTrust is a standalone Chrome Manifest V3 extension that records selected website activity, tracks observed network destinations, and presents deterministic evidence-backed findings locally. The local test site is only a fixture; extension code does not import or depend on it.
 
-**Status: Phase 3 implementation.** The event pipeline, deterministic analysis, local findings store, destination summary, assessment-first popup, and View Activity page are implemented. A real Chrome demonstration has not yet been verified in this workspace; see [Verification](#verification).
+**Status: Phase 3 implementation; dashboard foundation added.** The event pipeline, deterministic analysis, local findings store, destination summary, assessment-first popup, and View Activity page are implemented. A separate React dashboard page is included as a local-only placeholder foundation; its feature views do not read browser data yet. A real Chrome demonstration has not yet been verified in this workspace; see [Verification](#verification).
 
 ## Requirements and commands
 
@@ -10,6 +10,7 @@ BrowserTrust is a standalone Chrome Manifest V3 extension that records selected 
 - Node.js 20 or newer and npm
 - TypeScript, esbuild, Vitest, jsdom for DOM tests, and Node's built-in test runner
 - No extension backend, database, cloud service, or remote analysis
+- React dashboard is bundled locally; it makes no network requests
 
 ```bash
 npm ci
@@ -23,6 +24,8 @@ npm run format:check  # Prettier check
 ```
 
 To load the extension, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select the generated `dist/` directory. After each build, reload the extension from that page.
+
+The standalone dashboard page is at `chrome-extension://<installed-extension-id>/dashboard.html` after loading the extension. Replace the placeholder with the ID shown on `chrome://extensions`; no extension ID is hardcoded. The page currently contains labelled preview content only and does not access browser history, permissions, or Trust Monitor data.
 
 ## Permissions and coverage
 
@@ -112,4 +115,4 @@ Items deliberately out of scope so far: ESLint (Prettier is wired, the lint pass
 
 Automated type, unit, testbed, and build commands are available above. A passing build or unit suite does not prove Chrome permission prompts, dynamic registration, event delivery, or popup behavior work together. Manual Chrome verification must include the local demo, monitoring-disabled state, missing-permission state, empty state, and at least one permitted ordinary website before Phase 3 is called demo-ready.
 
-Latest workspace result: typecheck, all 89 Vitest tests, and build passed. The combined `npm run check` is currently blocked by a testbed fixture assertion that expects `A suspicious website`, while the fixture page currently says `Suspicious behavior demo` (8/9 Node server tests passed). Chrome/Chromium was not available on PATH, so the redesigned popup and activity page have not been browser-verified.
+Latest workspace result (2026-10-22): `npm run check` passed — typecheck, all 116 Vitest tests, all 9 testbed server tests, production build, and `verify-dist`. The dashboard assets are included in the build. The dashboard URL and responsive rendering have not yet been manually verified in Chrome/Chromium.

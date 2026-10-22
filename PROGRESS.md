@@ -1,5 +1,12 @@
 # Progress
 
+## Dashboard foundation (Phase 1)
+
+- Added a separate React dashboard extension page with responsive sidebar navigation and placeholder views for Overview, Site Overview, Permission Manager, Web Recall, Follow-up Tracker, Context Keeper, Screen Time, and Trust Monitor. Preview/sample content is labelled and does not represent browser observations.
+- Integrated React/React DOM and TSX into the existing esbuild build; `dashboard.html`, `dashboard.js`, and `dashboard.css` are copied/verified in `dist/`. No manifest permissions, popup wiring, storage, monitoring, or backend behavior changed.
+- The dashboard can be opened directly at `chrome-extension://<installed-extension-id>/dashboard.html` after loading `dist/`. Manual Chrome verification is pending.
+- Validation (2026-10-22): `npm run check` passed — typecheck, 116 Vitest tests, 9/9 testbed server tests, production build, and `verify-dist` (14 required output files, including all dashboard assets). `git diff --check` passed. Dashboard rendering and direct extension-URL access still need manual Chrome verification.
+
 ## Phase 3 implementation checkpoint
 
 Implemented in the existing Phase 2 architecture:

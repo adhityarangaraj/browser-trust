@@ -21,11 +21,11 @@ Phase 3 adds deterministic local analysis, persisted evidence-backed findings, d
 | Validation, storage, ingestion | `src/core/` | service worker |
 | Deterministic rules, findings, assessment | `src/analysis/` | service worker/popup pure logic |
 | Settings and site access | `src/config/` | extension contexts |
-| UI | `src/popup/` | popup and activity extension page |
+| UI | `src/popup/`, `src/dashboard/` | popup/activity pages and React dashboard extension page |
 | Schema and messages | `src/shared/` | shared |
 | Local test fixture | `testbed/` | standalone Node process/browser page; never imported by extension |
 
-Entry points are bundled by `scripts/build.mjs`: `src/background/index.ts` to `background.js` (ESM), `src/content/index.ts` to `content.js` (IIFE), `src/page-hooks/index.ts` to `page-hook.js` (IIFE), and `src/popup/popup.ts` to `popup.js` (IIFE). Static extension files are copied into `dist/`.
+Entry points are bundled by `scripts/build.mjs`: `src/background/index.ts` to `background.js` (ESM), `src/content/index.ts` to `content.js` (IIFE), `src/page-hooks/index.ts` to `page-hook.js` (IIFE), `src/popup/popup.ts` to `popup.js` (IIFE), and `src/dashboard/dashboard.tsx` to `dashboard.js` (React IIFE). Static extension files are copied into `dist/`. The dashboard is a separate placeholder page and does not yet access browser data.
 
 **All events go through `EventPipeline`** (`emit` for collectors, `ingestFromContent` for content scripts). No other module writes events to storage.
 

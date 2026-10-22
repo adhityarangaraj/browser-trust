@@ -29,7 +29,7 @@ The repository uses:
 - Chrome Extension Manifest V3.
 - esbuild through `scripts/build.mjs`; build output is `dist/`.
 - Vitest for automated tests.
-- Plain HTML/CSS/TypeScript for the popup, without a mandatory UI framework.
+- Plain HTML/CSS/TypeScript for the popup and activity page; a separate React/TypeScript dashboard page provides placeholder feature navigation.
 - `chrome.storage.local` for bounded local event storage.
 - A local Node.js testbed and collector.
 
@@ -60,6 +60,7 @@ Reuse the existing code. Do not recreate the project or add a second event pipel
 - `src/core/`: event validation, normalization, ingestion pipeline, and bounded local storage.
 - `src/analysis/`: deterministic rule engine, findings, evidence links, assessment logic.
 - `src/popup/`: extension UI and views.
+- `src/dashboard/`: separate React dashboard page; currently presentation-only placeholders and no browser data access.
 - `public/manifest.json`: Manifest V3 configuration.
 - `scripts/build.mjs`: build and static asset copying.
 - `testbed/`: local synthetic website and collector used only for controlled testing.
