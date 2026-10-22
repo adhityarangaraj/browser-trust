@@ -3,7 +3,7 @@
 ## Advanced Permissions dashboard surface
 
 - Added an opt-in Permissions manager to the existing React dashboard. It discovers a bounded set of hostnames from up to 30 days of local Chrome History, queries Chrome's effective content settings, and offers filters, sorting, per-site inspection, and confirmed blocking for supported settings.
-- Added optional `contentSettings` permission only. USB, Serial, HID, and Bluetooth device-grant inventories are labelled unsupported; BrowserTrust does not claim to enumerate those grants.
+- Added optional `contentSettings` permission only. Device-grant inventory limitations remain documented in README rather than taking space in the dashboard review UI.
 - BrowserTrust-created block actions are re-read for confirmation and logged locally (maximum 100 entries, 90-day retention). Chrome does not expose whether an effective setting is a site exception or a broader default; individual exception reset remains in Chrome settings.
 - Focused permission API tests were added but not run at the user's request. No build, typecheck, or broad test command was run for this implementation. Manual Chrome verification remains required for optional permission prompts, effective setting reads, confirmed blocks, and direct Chrome settings navigation.
 

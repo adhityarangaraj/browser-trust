@@ -90,13 +90,6 @@ export const SITE_PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
   },
 ];
 
-export const DEVICE_PERMISSION_LIMITATIONS = [
-  { id: 'usb', label: 'USB devices' },
-  { id: 'serial', label: 'Serial devices' },
-  { id: 'hid', label: 'HID devices' },
-  { id: 'bluetooth', label: 'Bluetooth devices' },
-] as const;
-
 const VALID_STATES = new Set<PermissionSettingState>([
   'allow', 'block', 'ask', 'session_only', 'unsupported', 'error', 'unknown',
 ]);

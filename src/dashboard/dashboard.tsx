@@ -711,7 +711,7 @@ function FeaturePlaceholder({
         </span>
         <div>
           <p className="eyebrow">
-            {view === 'trust' ? 'PRIVACY' : view === 'permissions' ? 'YOUR BROWSER' : 'YOUR TOOLS'}
+            {view === 'trust' ? 'PRIVACY' : 'YOUR TOOLS'}
           </p>
           <h2>{content.title}</h2>
           <p>{content.description}</p>

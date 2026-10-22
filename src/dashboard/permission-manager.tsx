@@ -6,7 +6,6 @@ import {
   blockSitePermission,
   canBlockSitePermission,
   clearPermissionAudit,
-  DEVICE_PERMISSION_LIMITATIONS,
   PERMISSION_AUDIT_RETENTION_DAYS,
   readPermissionAudit,
   readSitePermissionSetting,
@@ -23,6 +22,7 @@ type PermissionSort = 'sensitivity' | 'lastVisitTime' | 'host';
 type ManagerSite = SiteVisitSummary & { settings: SitePermissionState[] };
 
 const MAX_REVIEW_SITES = 100;
+const SITE_PAGE_SIZE = 12;
 const SENSITIVE_IDS = new Set(['camera', 'microphone', 'geolocation', 'clipboard']);
 const filters: { id: PermissionFilter; label: string }[] = [
   { id: 'all', label: 'All sites' },
@@ -55,6 +55,7 @@ export function PermissionManager() {
   const [permissionBusy, setPermissionBusy] = useState<'history' | 'contentSettings' | undefined>();
   const [filter, setFilter] = useState<PermissionFilter>('all');
   const [sort, setSort] = useState<PermissionSort>('sensitivity');
+  const [siteLimit, setSiteLimit] = useState(SITE_PAGE_SIZE);
   const [query, setQuery] = useState('');
   const [selectedHost, setSelectedHost] = useState<string>();
   const [selectedHosts, setSelectedHosts] = useState<string[]>([]);
@@ -110,6 +111,7 @@ export function PermissionManager() {
   };
 
   useEffect(() => { void refresh(); }, []);
+  useEffect(() => { setSiteLimit(SITE_PAGE_SIZE); }, [filter, query, sort]);
 
   const visibleSites = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -127,6 +129,7 @@ export function PermissionManager() {
     });
     return result;
   }, [filter, query, sites, sort]);
+  const listedSites = visibleSites.slice(0, siteLimit);
 
   const selectedSite = sites.find((site) => site.host === selectedHost);
   const sensitiveGrantCount = sites.reduce((count, site) => count + sensitiveAllowCount(site), 0);
@@ -272,8 +275,7 @@ export function PermissionManager() {
       <section className="permission-summary-row" aria-label="Permission review summary">
         <div><span>Visited sites</span><strong>{loading ? '…' : sites.length}</strong></div>
         <div><span>Effective sensitive allows</span><strong>{loading || !settingsGranted ? '—' : sensitiveGrantCount}</strong></div>
-        <div><span>Settings needing Chrome</span><strong>{DEVICE_PERMISSION_LIMITATIONS.length}</strong></div>
-        <div className="review-queue-summary"><span>Review queue</span><strong>{loading || !settingsGranted ? '—' : sensitiveGrantCount}</strong><button className="text-button" onClick={openReview} disabled={!settingsGranted || sensitiveGrantCount === 0}>Review allowed access</button></div>
+        <div className="review-queue-summary"><span>Review queue</span><strong>{loading || !settingsGranted ? '—' : sensitiveGrantCount}</strong><button className="text-button" onClick={() => openReview()} disabled={!settingsGranted || sensitiveGrantCount === 0}>Review allowed access</button></div>
       </section>
 
       {!historyGranted && <section className="permission-empty"><History size={20} /><strong>Allow site discovery to begin</strong><p>Without History permission, Chrome does not give this extension a list of visited sites to check.</p></section>}
@@ -295,7 +297,7 @@ export function PermissionManager() {
           <div className="table-scroll">
             <table className="sites-table permission-sites-table">
               <thead><tr><th scope="col"><span className="visually-hidden">Select site for review</span></th><th scope="col">Site</th><th scope="col">Sensitive access</th><th scope="col">Last visit</th></tr></thead>
-              <tbody>{visibleSites.map((site) => {
+              <tbody>{listedSites.map((site) => {
                 const highAllowed = site.settings.some(({ permissionId, state }) => SENSITIVE_IDS.has(permissionId) && state === 'allow');
                 return <tr key={site.host} className={site.host === selectedHost ? 'permission-row-selected' : ''}>
                   <td><input aria-label={`Select ${site.host} for sensitive permission review`} type="checkbox" checked={selectedHosts.includes(site.host)} disabled={!highAllowed} onChange={() => toggleSite(site.host)} /></td>
@@ -307,7 +309,7 @@ export function PermissionManager() {
             </table>
           </div>
           {visibleSites.length === 0 && <p className="permission-empty-inline">No sites match this filter.</p>}
-          <div className="table-footer"><span>{visibleSites.length} of {sites.length} listed sites</span><button className="text-button" onClick={() => openReview(selectedHosts)} disabled={selectedHosts.length === 0}>Review selected sites ({selectedHosts.length})</button></div>
+          <div className="table-footer"><span>Showing {listedSites.length} of {visibleSites.length} matching sites</span><span className="table-footer-actions">{visibleSites.length > listedSites.length && <button className="text-button" onClick={() => setSiteLimit((limit) => limit + SITE_PAGE_SIZE)}>Load more</button>}<button className="text-button" onClick={() => openReview(selectedHosts)} disabled={selectedHosts.length === 0}>Review selected sites ({selectedHosts.length})</button></span></div>
         </section>
 
         {reviewOpen && <section className="bulk-review-panel" aria-labelledby="bulk-review-title">
@@ -338,11 +340,6 @@ export function PermissionManager() {
           <div className="permission-detail-footnote">“Allowed”, “Blocked”, and “Ask” describe the effective content setting returned for the HTTPS hostname. They do not reveal whether Chrome stores a site exception or uses a broader default. BrowserTrust can add a block rule; removing or resetting individual Chrome exceptions must be done in Chrome settings.</div>
         </section>
       </>}
-
-      <section className="content-panel device-limitations-panel">
-        <div className="panel-header"><div><h2>Device access and browser-level controls</h2><p>These grants are managed outside the per-site content settings API.</p></div><button className="secondary-button" onClick={openChromeSettings}><ExternalLink size={13} /> Open Chrome site settings</button></div>
-        <div className="device-permission-list">{DEVICE_PERMISSION_LIMITATIONS.map(({ id, label }) => <div className="device-permission-row" key={id}><span><strong>{label}</strong><small>Chrome does not expose other sites’ granted-device inventory to this extension.</small></span><StateBadge state="unsupported" /><button className="text-button" onClick={openChromeSettings}>Open settings</button></div>)}</div>
-      </section>
 
       <section className="content-panel extension-permissions-panel">
         <div className="panel-header"><div><h2>BrowserTrust extension access</h2><p>Separate from permissions that websites hold. Optional access is enabled only when Chrome currently grants it.</p></div></div>
