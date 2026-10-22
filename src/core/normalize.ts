@@ -20,6 +20,7 @@ export type ContentEventInput = Omit<NewEvent, 'source'>;
 export interface NormalizeDeps {
   now?: () => number;
   newId?: () => string;
+  nextSequence?: () => number;
 }
 
 export type ValidationResult =
@@ -43,6 +44,7 @@ export function createEvent(input: NewEvent, deps: NormalizeDeps = {}): BrowserT
     schemaVersion: EVENT_SCHEMA_VERSION,
     id: (deps.newId ?? (() => globalThis.crypto.randomUUID()))(),
     timestamp: (deps.now ?? Date.now)(),
+    ...(deps.nextSequence ? { sequence: deps.nextSequence() } : {}),
   };
   const result = validateEvent(candidate);
   if (!result.ok) throw new EventValidationError(result.errors);
@@ -57,6 +59,11 @@ export function validateEvent(value: unknown): ValidationResult {
   if (!isNonEmptyString(value.id)) errors.push('id must be a non-empty string');
   if (typeof value.timestamp !== 'number' || !Number.isFinite(value.timestamp) || value.timestamp < 0) {
     errors.push('timestamp must be a non-negative number');
+  }
+  if (value.sequence !== undefined) {
+    if (typeof value.sequence !== 'number' || !Number.isFinite(value.sequence) || value.sequence < 0) {
+      errors.push('sequence must be a non-negative finite number when present');
+    }
   }
   if (!includes(EVENT_CATEGORIES, value.category)) errors.push('unknown category');
   if (typeof value.action !== 'string' || !ACTION_PATTERN.test(value.action)) {
@@ -101,6 +108,7 @@ export function validateEvent(value: unknown): ValidationResult {
     evidence,
     provenance: value.provenance as BrowserTrustEvent['provenance'],
     ...(destination ? { destination } : {}),
+    ...(value.sequence !== undefined ? { sequence: value.sequence as number } : {}),
     ...(value.confidence !== undefined ? { confidence: value.confidence as number } : {}),
     ...(value.severity !== undefined ? { severity: value.severity as BrowserTrustEvent['severity'] } : {}),
     ...(relatedEventIds ? { relatedEventIds } : {}),

@@ -2,12 +2,22 @@ import type { BrowserTrustEvent } from '../shared/types';
 import type { Finding, Rule } from './types';
 
 /**
+ * Chronological order with the ingestion sequence number as a tiebreaker, so
+ * events emitted in the same millisecond keep a deterministic order.
+ */
+function chronological(a: BrowserTrustEvent, b: BrowserTrustEvent): number {
+  const byTimestamp = a.timestamp - b.timestamp;
+  if (byTimestamp !== 0) return byTimestamp;
+  return (a.sequence ?? 0) - (b.sequence ?? 0);
+}
+
+/**
  * Runs rules over events in chronological order; each event is evaluated
  * against the events that came before it. Duplicate findings are collapsed by
  * their deterministic ID.
  */
 export function analyze(rules: readonly Rule[], events: readonly BrowserTrustEvent[]): Finding[] {
-  const ordered = [...events].sort((a, b) => a.timestamp - b.timestamp);
+  const ordered = [...events].sort(chronological);
   const findings: Finding[] = [];
   const seen = new Set<string>();
   ordered.forEach((event, index) => {
@@ -26,7 +36,7 @@ export function analyzeEvent(
   event: BrowserTrustEvent,
   history: readonly BrowserTrustEvent[],
 ): Finding[] {
-  const orderedHistory = [...history].filter((candidate) => candidate.id !== event.id).sort((a, b) => a.timestamp - b.timestamp);
+  const orderedHistory = [...history].filter((candidate) => candidate.id !== event.id).sort(chronological);
   const findings: Finding[] = [];
   const seen = new Set<string>();
   for (const rule of rules) {

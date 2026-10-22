@@ -16,11 +16,20 @@ export type EventListener = (event: BrowserTrustEvent) => unknown | Promise<unkn
  */
 export class EventPipeline {
   private readonly listeners = new Set<EventListener>();
+  private readonly deps: NormalizeDeps;
 
   constructor(
     private readonly store: EventStore,
-    private readonly deps: NormalizeDeps = {},
-  ) {}
+    deps: NormalizeDeps = {},
+  ) {
+    // Pipeline owns a monotonic counter so events ingested in the same
+    // millisecond still carry a stable chronological order for rules.
+    let counter = 0;
+    this.deps = {
+      ...deps,
+      nextSequence: deps.nextSequence ?? (() => ++counter),
+    };
+  }
 
   subscribe(listener: EventListener): () => void {
     this.listeners.add(listener);

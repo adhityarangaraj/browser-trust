@@ -87,6 +87,12 @@ export interface BrowserTrustEvent {
   id: string;
   /** Milliseconds since the Unix epoch. */
   timestamp: number;
+  /**
+   * Monotonic ingestion counter assigned by the pipeline. Used as a tiebreaker
+   * when two events share a timestamp so rules see a stable chronological order.
+   * Optional for backward compatibility with events stored before the counter existed.
+   */
+  sequence?: number;
   category: EventCategory;
   /** Lowercase dotted verb, e.g. "request.sent", "form.submitted". */
   action: string;

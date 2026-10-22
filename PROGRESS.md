@@ -24,6 +24,7 @@ Implemented in the existing Phase 2 architecture:
 - `npm.cmd run build`: passed and generated `dist/` bundles.
 - `npm.cmd run check` after the script update: passed end to end (typecheck, all 89 Vitest tests, all 5 collector tests, and build).
 - Phase 1 (unblock the build) completed on 2026-10-22: the testbed `server-test.mjs` assertion was updated from `/A suspicious website/` to `/Suspicious behavior demo/` to match the current fixture heading. `npm run check` now passes end to end on macOS: typecheck, 89 Vitest tests, 9/9 Node testbed tests, and the production build.
+- Phase 2 (rule correctness) completed on 2026-10-22: `BrowserTrustEvent` now carries an optional monotonic `sequence` number assigned by `EventPipeline`, and `analyze`/`analyzeEvent` sort by `(timestamp, sequence)` so events ingested in the same millisecond keep a deterministic chronological order. Validator accepts the field for backward compatibility with events stored before the counter existed. Added a dedicated test covering the tiebreaker. 90 Vitest tests + 9 Node tests + typecheck + build pass.
 - No real Chrome/Chromium end-to-end demo or ordinary-site check was performed. Browser presence alone does not verify extension permissions, dynamic script registration, event delivery, or popup rendering.
 - The redesigned popup and View Activity navigation have not been verified in Chrome/Chromium.
 

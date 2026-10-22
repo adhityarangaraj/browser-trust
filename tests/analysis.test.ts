@@ -34,6 +34,32 @@ describe('analyze', () => {
     expect(seenHistory).toEqual([0, 1]);
   });
 
+  it('breaks ties on identical timestamps with the ingestion sequence number', () => {
+    const seen: string[] = [];
+    const rule: Rule = {
+      id: 'test.rule',
+      description: 'records order',
+      evaluate: (event) => {
+        seen.push(event.id);
+        return [];
+      },
+    };
+    const same = (id: string, sequence: number) =>
+      createEvent(
+        {
+          category: 'page',
+          action: 'page.loaded',
+          source: { origin: 'https://example.com' },
+          evidence: { collector: 't', mechanism: 'content-script', details: {} },
+          provenance: 'observed',
+        },
+        { newId: () => id, now: () => 1, nextSequence: () => sequence },
+      );
+    // Deliberately shuffled input; the sequence number dictates the order.
+    analyze([rule], [same('third', 3), same('first', 1), same('second', 2)]);
+    expect(seen).toEqual(['first', 'second', 'third']);
+  });
+
   it('rejects findings that cite no evidence', () => {
     const rule: Rule = {
       id: 'bad.rule',
