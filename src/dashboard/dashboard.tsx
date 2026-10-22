@@ -35,6 +35,7 @@ import { PermissionManager } from './permission-manager';
 import { ContextKeeper } from './context-keeper';
 import { TrustMonitor } from './trust-monitor';
 import { FollowUpTracker } from './follow-up-tracker';
+import { WebRecall } from './web-recall';
 
 type ViewId = 'overview' | 'sites' | 'permissions' | 'recall' | 'followups' | 'spaces' | 'trust';
 type SortKey = 'visits' | 'lastVisitTime' | 'host' | 'activeMs';
@@ -209,13 +210,15 @@ function App() {
             <FollowUpTracker />
           ) : activeView === 'trust' ? (
             <TrustMonitor />
+          ) : activeView === 'recall' ? (
+            <WebRecall />
           ) : (
             <FeaturePlaceholder view={activeView} onNavigate={navigate} />
           )}
           <footer className="page-footer">
             <span>BrowserTrust dashboard</span>
             <span>
-              <span className="status-dot" /> {activeView === 'sites' || activeView === 'permissions' || activeView === 'spaces' || activeView === 'followups' || activeView === 'trust' ? 'Data and workspace snapshots stay on this device' : 'This view is a placeholder'}
+              <span className="status-dot" /> {activeView === 'sites' || activeView === 'permissions' || activeView === 'spaces' || activeView === 'followups' || activeView === 'trust' || activeView === 'recall' ? 'Data and workspace snapshots stay on this device' : 'This view is a placeholder'}
             </span>
           </footer>
         </div>
@@ -289,8 +292,9 @@ function Overview({ onNavigate }: { onNavigate: (view: ViewId) => void }) {
           <strong>A foundation for your browser companion</strong>
           <p>
             Sites & Activity includes local history summaries and optional active-time estimates. Permissions
-            reviews recent sites and supported Chrome settings, while Context Keeper saves local tab workspaces.
-            Web Recall, reminders, and Trust Monitor dashboard integrations remain planned.
+            reviews recent sites and supported Chrome settings. Context Keeper saves local tab workspaces. Web
+            Recall provides private local history search with saved collections. Trust Monitor reviews evidence-backed
+            site assessments.
           </p>
         </div>
       </section>
@@ -671,21 +675,15 @@ function FeaturePlaceholder({
   view,
   onNavigate,
 }: {
-  view: Exclude<ViewId, 'overview' | 'sites' | 'permissions' | 'spaces' | 'followups' | 'trust'>;
+  view: Exclude<ViewId, 'overview' | 'sites' | 'permissions' | 'spaces' | 'followups' | 'trust' | 'recall'>;
   onNavigate: (view: ViewId) => void;
 }) {
   const feature: Record<
-    typeof view,
+    string,
     { icon: LucideIcon; title: string; description: string; rows: string[] }
-  > = {
-    recall: {
-      icon: Search,
-      title: 'Find your way back to useful pages.',
-      description: 'Search history and pages you explicitly save, with simple filters to narrow the results.',
-      rows: ['Search page titles and URLs', 'Filter by date', 'Keep a personal saved-page list'],
-    },
-  };
-  const content = feature[view];
+  > = {};
+  const content = feature[view as string];
+  if (!content) return null;
   const Icon = content.icon;
   return (
     <section className="feature-layout">
