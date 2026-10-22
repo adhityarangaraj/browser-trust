@@ -592,7 +592,13 @@ function SitesActivity() {
             <span className="time-empty-icon">
               <Clock3 size={19} aria-hidden="true" />
             </span>
-            <strong>{time?.enabled ? (activeTotal ? `${formatDuration(activeTotal)} recorded` : 'Waiting for eligible browsing')}</strong>
+            <strong>
+              {time?.enabled
+                ? activeTotal
+                  ? `${formatDuration(activeTotal)} recorded`
+                  : 'Waiting for eligible browsing'
+                : 'Tracking is paused'}
+            </strong>
             <p>Enabling requests optional tabs, idle, and alarms permissions. Counts only an HTTP(S) active tab in the focused Chrome window while Chrome reports you active. This estimates foreground time, not attention; long worker/browser interruptions can be undercounted.</p>
           </div>
           <div className="tracking-actions"><button className={time?.enabled ? 'secondary-button' : 'primary-button'} onClick={() => void toggleTracking()} disabled={trackingPending}>{time?.enabled ? <><Pause size={13} /> Pause tracking</> : <><Play size={13} /> Enable time tracking</>}</button>{(time?.records.length ?? 0) > 0 && <button className="secondary-button" onClick={() => void clearTracking()}><Trash2 size={13} /> Clear records</button>}</div>
