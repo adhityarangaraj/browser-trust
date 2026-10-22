@@ -71,24 +71,27 @@ export function assessSite(
     );
   }
 
-  if (siteFindings.some((finding) => finding.severity === 'high')) {
-    // High-severity still escalates even for allowlisted common hosts.
+  const allowlisted = isKnownCommonHost(context.host);
+  const highCount = siteFindings.filter((finding) => finding.severity === 'high').length;
+  const mediumCount = siteFindings.filter((finding) => finding.severity === 'medium').length;
+
+  // High-severity promotion ONLY for sites not on the common-sites allowlist.
+  // Pattern-based rules (sustained POST bursts, capability-then-upload) are
+  // exactly what large legitimate sites — GitHub telemetry, YouTube ads,
+  // analytics endpoints — do routinely, so firing a "Suspicious activity
+  // detected" state on an allowlisted host produces false positives that
+  // undermine the extension's credibility. The high findings still render
+  // below the assessment for transparency; removing a site from
+  // `known-hosts.ts` restores escalation.
+  if (highCount > 0 && !allowlisted) {
     return result('suspicious-activity-detected', 'One or more high-severity rules matched observed evidence. Review the supporting events and limitations.', siteEvents, siteFindings);
   }
-  const allowlisted = isKnownCommonHost(context.host);
-  const mediumCount = siteFindings.filter((finding) => finding.severity === 'medium').length;
-  // "Review recommended" is reserved for medium+ findings on sites not on the
-  // built-in common-sites allowlist. Low findings are informational and never
-  // flip the state; medium findings on allowlisted hosts are shown below for
-  // transparency but also do not flip the state (large legitimate sites match
-  // medium rules in the course of normal use).
   if (mediumCount > 0 && !allowlisted) {
     return result('review-recommended', 'Some observed behavior matched a medium-severity review rule. The findings describe evidence and do not prove malicious intent.', siteEvents, siteFindings);
   }
   if (siteFindings.length > 0) {
-    const explanation = allowlisted && mediumCount > 0
-      ? `This site is on BrowserTrust's built-in list of well-known common websites, so ${mediumCount} medium-severity finding${mediumCount === 1 ? '' : 's'} ${mediumCount === 1 ? 'is' : 'are'} listed below for transparency without flipping the assessment. High-severity findings would still promote the state.`
-      : `Monitoring is active and activity was observed. ${siteFindings.length} low-severity informational finding${siteFindings.length === 1 ? '' : 's'} ${siteFindings.length === 1 ? 'is' : 'are'} listed below but did not match a review rule. This is not proof that the site is safe.`;
+    const count = siteFindings.length;
+    const explanation = `Monitoring is active and activity was observed. ${count} finding${count === 1 ? '' : 's'} ${count === 1 ? 'is' : 'are'} listed below but did not promote the overall assessment. This is not proof that the site is safe.`;
     return result('no-suspicious-activity-observed', explanation, siteEvents, siteFindings);
   }
   return result('no-suspicious-activity-observed', 'Monitoring is active and activity was observed, but no configured rule matched. This is not proof that the site is safe.', siteEvents, siteFindings);

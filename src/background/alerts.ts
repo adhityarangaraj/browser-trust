@@ -1,7 +1,17 @@
 /**
- * Native OS alerts for high-severity findings. Fires even when the popup is
- * closed, via `chrome.notifications`, and sets a red "!" badge on the
- * extension icon for the tab that triggered the finding.
+ * Alerts for high-severity and medium-severity (review recommended) findings.
+ * Fires even when the popup is closed, via an in-page modal dialog (falling
+ * back to chrome.notifications), and sets a colored "!" badge on the
+ * extension icon (red for high, orange for medium) for the tab that triggered the
+ * finding.
+ *
+ * Delivery:
+ *   - Primary: a large in-page alert dialog. The background pushes a
+ *     `show-alert` message to the top frame of the triggering tab and the
+ *     BrowserTrust content script renders it (see `content/alert-overlay.ts`).
+ *   - Fallback: a native OS notification via `chrome.notifications`, used
+ *     when the tab is unknown, has no BrowserTrust content script (e.g. only
+ *     `webRequest` covers it), or does not acknowledge the message.
  *
  * Design choices:
  *   - Only `severity: 'high'` findings alert. That is the same bar the
@@ -18,7 +28,9 @@
  */
 import type { BrowserTrustEvent } from '../shared/types';
 import type { Finding } from '../analysis/types';
+import { isKnownCommonHost } from '../analysis/known-hosts';
 import type { OnFindingsAdded } from '../analysis/service';
+import type { AlertPayload, ShowAlertMessage } from '../shared/messages';
 
 const NOTIFICATION_PREFIX = 'bt-finding:';
 
@@ -50,39 +62,82 @@ export function createAlertHandle(deps: AlertDeps = {
 }): AlertHandle {
   const notified = new Set<string>();
   const tabByNotification = new Map<string, number>();
+  const highestSeverityByTab = new Map<number, Finding['severity']>();
 
   const findingTitle = (finding: Finding): string => finding.title;
   const findingBody = (finding: Finding): string => {
     const where = finding.destinationHost ?? finding.sourceOrigin;
-    const prefix = `Severity: HIGH · ${finding.evidenceStrength.replaceAll('-', ' ')}`;
+    const prefix = `Severity: ${finding.severity.toUpperCase()} · ${finding.evidenceStrength.replaceAll('-', ' ')}`;
     return where ? `${prefix}\n${where}\n${finding.explanation}` : `${prefix}\n${finding.explanation}`;
   };
 
   const notifiedIdFor = (finding: Finding): string => `${NOTIFICATION_PREFIX}${finding.id}`;
 
+  const showOsNotification = (finding: Finding, tabId: number | undefined): void => {
+    const notificationId = notifiedIdFor(finding);
+    if (tabId !== undefined) tabByNotification.set(notificationId, tabId);
+    // requireInteraction keeps it on screen until the user acknowledges.
+    deps.notifications?.create(notificationId, {
+      type: 'basic',
+      iconUrl: deps.runtime?.getURL('icons/icon-128.png') ?? 'icons/icon-128.png',
+      title: `BrowserTrust: ${findingTitle(finding)}`,
+      message: findingBody(finding),
+      priority: finding.severity === 'high' ? 2 : 1,
+      requireInteraction: true,
+    });
+  };
+
+  /**
+   * Asks the content script in the tab's top frame to show the in-page alert
+   * dialog. Resolves true only when the content script acknowledges it.
+   */
+  const showInPage = async (finding: Finding, tabId: number): Promise<boolean> => {
+    const tabs = deps.tabs;
+    if (!tabs?.sendMessage) return false;
+    const message: ShowAlertMessage = { type: 'show-alert', alert: toAlertPayload(finding) };
+    try {
+      const reply: unknown = await tabs.sendMessage(tabId, message, { frameId: 0 });
+      return typeof reply === 'object' && reply !== null && (reply as { shown?: unknown }).shown === true;
+    } catch {
+      return false; // no content script in this tab, or the tab is gone
+    }
+  };
+
   const onFindingsAdded: OnFindingsAdded = (findings, triggerEvent) => {
-    const high = findings.filter((finding) => finding.severity === 'high');
-    if (high.length === 0) return;
+    const relevant = findings.filter(
+      (finding) => finding.severity === 'high' || finding.severity === 'medium',
+    );
+    if (relevant.length === 0) return;
+    // Mirrors the assessment layer: for allowlisted common sites we treat
+    // pattern-based findings as informational. The findings still appear
+    // in the popup; we just do not pop an alert dialog over the user's work.
+    const sourceHost = (() => {
+      try {
+        return triggerEvent.source.origin ? new URL(triggerEvent.source.origin).host : undefined;
+      } catch {
+        return undefined;
+      }
+    })();
+    if (isKnownCommonHost(sourceHost)) return;
     const tabId = triggerEvent.source.tabId;
-    for (const finding of high) {
+    for (const finding of relevant) {
       if (notified.has(finding.id)) continue;
       notified.add(finding.id);
-      const notificationId = notifiedIdFor(finding);
-      if (tabId !== undefined) tabByNotification.set(notificationId, tabId);
-      // Native OS notification. requireInteraction keeps it on screen until
-      // the user acknowledges — appropriate for a HIGH finding.
-      deps.notifications?.create(notificationId, {
-        type: 'basic',
-        iconUrl: deps.runtime?.getURL('icons/icon-128.png') ?? 'icons/icon-128.png',
-        title: `BrowserTrust: ${findingTitle(finding)}`,
-        message: findingBody(finding),
-        priority: 2,
-        requireInteraction: true,
-      });
+      if (tabId === undefined || !deps.tabs?.sendMessage) {
+        showOsNotification(finding, tabId);
+      } else {
+        void showInPage(finding, tabId).then((shown) => {
+          if (!shown) showOsNotification(finding, tabId);
+        });
+      }
       if (tabId !== undefined) {
+        const currentHighest = highestSeverityByTab.get(tabId);
+        const newSeverity = currentHighest === 'high' || finding.severity === 'high' ? 'high' : 'medium';
+        highestSeverityByTab.set(tabId, newSeverity);
+        const color = newSeverity === 'high' ? '#E53945' : '#F59E0B';
         try {
           deps.action?.setBadgeText({ tabId, text: '!' });
-          deps.action?.setBadgeBackgroundColor({ tabId, color: '#E53945' });
+          deps.action?.setBadgeBackgroundColor({ tabId, color });
           deps.action?.setTitle?.({ tabId, title: `BrowserTrust: ${findingTitle(finding)}` });
         } catch (error) {
           console.error('BrowserTrust: badge update failed', error);
@@ -92,6 +147,7 @@ export function createAlertHandle(deps: AlertDeps = {
   };
 
   const clearForTab = (tabId: number): void => {
+    highestSeverityByTab.delete(tabId);
     try {
       deps.action?.setBadgeText({ tabId, text: '' });
       deps.action?.setTitle?.({ tabId, title: 'BrowserTrust' });
@@ -105,6 +161,7 @@ export function createAlertHandle(deps: AlertDeps = {
       try { deps.notifications?.clear(notificationId); } catch { /* best-effort */ }
     }
     tabByNotification.clear();
+    highestSeverityByTab.clear();
     notified.clear();
     try {
       deps.action?.setBadgeText({ text: '' });
@@ -130,4 +187,19 @@ export function createAlertHandle(deps: AlertDeps = {
   });
 
   return { onFindingsAdded, clearForTab, clearAll };
+}
+
+/** Builds the display-only payload for the in-page alert dialog. */
+export function toAlertPayload(finding: Finding): AlertPayload {
+  const where = finding.destinationHost ?? finding.sourceOrigin;
+  return {
+    findingId: finding.id,
+    title: finding.title,
+    explanation: finding.explanation,
+    severity: finding.severity,
+    evidenceStrength: finding.evidenceStrength.replaceAll('-', ' '),
+    ...(where ? { where } : {}),
+    limitations: [...finding.limitations],
+    timestamp: finding.timestamp,
+  };
 }

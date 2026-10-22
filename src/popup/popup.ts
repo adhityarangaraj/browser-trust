@@ -48,6 +48,16 @@ const eventsSearchInput = document.getElementById('events-search') as HTMLInputE
 const eventsCategoryFilters = document.getElementById('events-category-filters');
 
 const TIMELINE_CATEGORIES: readonly string[] = ['page', 'dom', 'form', 'storage', 'network', 'capability'];
+const CATEGORY_LABELS: Record<string, string> = {
+  page: 'Page Lifecycle',
+  dom: 'DOM Elements',
+  form: 'Form Activity',
+  storage: 'Storage & Cookies',
+  network: 'Network Requests',
+  capability: 'Device Capabilities',
+};
+const INITIAL_CATEGORY_LIMIT = 10;
+const categoryLimits = new Map<string, number>();
 const timelineCategoryEnabled = new Map<string, boolean>(
   TIMELINE_CATEGORIES.map((category) => [category, true]),
 );
@@ -364,33 +374,95 @@ function matchesTimelineFilters(event: BrowserTrustEvent): boolean {
   return haystack.includes(timelineSearchQuery);
 }
 
+function renderTimelineEventRow(event: BrowserTrustEvent): HTMLLIElement {
+  const row = document.createElement('li');
+  row.id = `event-${event.id}`;
+  const label = document.createElement('span');
+  label.className = 'event-label';
+  label.textContent = eventLabel(event);
+  row.append(label);
+  if (activityPage) {
+    const when = document.createElement('span');
+    when.className = 'meta';
+    when.textContent = ` · ${formatTime(event.timestamp)} · ${event.provenance}`;
+    const source = document.createElement('span');
+    source.className = 'event-source';
+    source.textContent = `${event.source.origin}${event.destination?.host ? ` → ${event.destination.host}` : ''} · ${event.evidence.mechanism} (${event.evidence.collector})`;
+    row.append(when, source);
+  } else if (event.destination?.host) {
+    const destination = document.createElement('span');
+    destination.className = 'meta';
+    destination.textContent = ` · ${event.destination.host}`;
+    row.append(destination);
+  }
+  return row;
+}
+
 function renderTimeline(events: BrowserTrustEvent[]): void {
   eventsList.replaceChildren();
   timelineAllEvents = events;
   const visible = activityPage ? events.filter(matchesTimelineFilters) : events;
   eventsEmpty.hidden = visible.length > 0;
-  for (const event of visible.slice(0, activityPage ? 1000 : 4)) {
-    const row = document.createElement('li');
-    row.id = `event-${event.id}`;
-    const label = document.createElement('span');
-    label.className = 'event-label';
-    label.textContent = eventLabel(event);
-    row.append(label);
-    if (activityPage) {
-      const when = document.createElement('span');
-      when.className = 'meta';
-      when.textContent = ` · ${formatTime(event.timestamp)} · ${event.provenance}`;
-      const source = document.createElement('span');
-      source.className = 'event-source';
-      source.textContent = `${event.source.origin}${event.destination?.host ? ` → ${event.destination.host}` : ''} · ${event.evidence.mechanism} (${event.evidence.collector})`;
-      row.append(when, source);
-    } else if (event.destination?.host) {
-      const destination = document.createElement('span');
-      destination.className = 'meta';
-      destination.textContent = ` · ${event.destination.host}`;
-      row.append(destination);
+
+  if (!activityPage) {
+    for (const event of visible.slice(0, 4)) {
+      eventsList.append(renderTimelineEventRow(event));
     }
-    eventsList.append(row);
+    return;
+  }
+
+  // Activity page: group by category, showing 10 per category with a "Load more" button
+  for (const category of TIMELINE_CATEGORIES) {
+    if (!timelineCategoryEnabled.get(category)) continue;
+    const categoryEvents = visible.filter((event) => event.category === category);
+    if (categoryEvents.length === 0) continue;
+
+    const limit = categoryLimits.get(category) ?? INITIAL_CATEGORY_LIMIT;
+    const displayed = categoryEvents.slice(0, limit);
+    const remaining = categoryEvents.length - displayed.length;
+
+    const section = document.createElement('li');
+    section.className = 'timeline-category-section';
+
+    const header = document.createElement('div');
+    header.className = 'timeline-category-header';
+
+    const title = document.createElement('span');
+    title.className = 'timeline-category-title';
+    title.textContent = CATEGORY_LABELS[category] ?? category;
+
+    const count = document.createElement('span');
+    count.className = 'timeline-category-count';
+    count.textContent = remaining > 0
+      ? `Showing ${displayed.length} of ${categoryEvents.length}`
+      : `${categoryEvents.length} observation${categoryEvents.length === 1 ? '' : 's'}`;
+
+    header.append(title, count);
+    section.append(header);
+
+    const subList = document.createElement('ol');
+    subList.className = 'category-events-list';
+    for (const event of displayed) {
+      subList.append(renderTimelineEventRow(event));
+    }
+    section.append(subList);
+
+    if (remaining > 0) {
+      const loadMoreRow = document.createElement('div');
+      loadMoreRow.className = 'timeline-load-more';
+      const loadMoreBtn = document.createElement('button');
+      loadMoreBtn.type = 'button';
+      loadMoreBtn.className = 'load-more-btn';
+      loadMoreBtn.textContent = `Load more ${CATEGORY_LABELS[category] ?? category} (${remaining} remaining)`;
+      loadMoreBtn.addEventListener('click', () => {
+        categoryLimits.set(category, limit + 10);
+        renderTimeline(timelineAllEvents);
+      });
+      loadMoreRow.append(loadMoreBtn);
+      section.append(loadMoreRow);
+    }
+
+    eventsList.append(section);
   }
 }
 
@@ -398,10 +470,11 @@ function renderTimelineFilters(): void {
   if (!activityPage || !eventsCategoryFilters) return;
   eventsCategoryFilters.replaceChildren();
   for (const category of TIMELINE_CATEGORIES) {
+    const totalCount = timelineAllEvents.filter((e) => e.category === category).length;
     const button = document.createElement('button');
     button.type = 'button';
     button.className = `chip${timelineCategoryEnabled.get(category) ? ' chip-on' : ''}`;
-    button.textContent = category;
+    button.textContent = totalCount > 0 ? `${category} (${totalCount})` : category;
     button.setAttribute('aria-pressed', String(timelineCategoryEnabled.get(category) === true));
     button.addEventListener('click', () => {
       timelineCategoryEnabled.set(category, !(timelineCategoryEnabled.get(category) ?? false));
@@ -483,6 +556,7 @@ async function refresh(): Promise<void> {
     renderBehavior(assessment.events, assessment.findings);
     renderDestinations(assessment.events, assessment.findings);
     renderTimeline(assessment.events);
+    renderTimelineFilters();
     latestReport = buildReport(
       assessment.events,
       assessment.findings,
@@ -621,7 +695,25 @@ document.addEventListener('click', (clickEvent) => {
   const href = target.getAttribute('href') ?? '';
   if (!href.startsWith('#event-') && !href.startsWith('#')) return;
   const id = href.slice(1);
-  const row = document.getElementById(id);
+  let row = document.getElementById(id);
+  if (!row && id.startsWith('event-')) {
+    const rawId = id.slice('event-'.length);
+    const event = timelineAllEvents.find((e) => e.id === rawId);
+    if (event) {
+      timelineCategoryEnabled.set(event.category, true);
+      const catEvents = timelineAllEvents.filter((e) => e.category === event.category);
+      const eventIndex = catEvents.findIndex((e) => e.id === rawId);
+      if (eventIndex >= 0) {
+        const currentLimit = categoryLimits.get(event.category) ?? INITIAL_CATEGORY_LIMIT;
+        if (eventIndex >= currentLimit) {
+          categoryLimits.set(event.category, eventIndex + 10);
+        }
+      }
+      renderTimeline(timelineAllEvents);
+      renderTimelineFilters();
+      row = document.getElementById(id);
+    }
+  }
   if (!row) return;
   clickEvent.preventDefault();
   row.scrollIntoView({ behavior: 'smooth', block: 'center' });
