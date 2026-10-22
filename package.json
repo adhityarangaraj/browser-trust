@@ -12,15 +12,20 @@
     "build": "node scripts/build.mjs",
     "watch": "node scripts/build.mjs --watch",
     "clean": "node scripts/build.mjs --clean",
+    "icons": "node scripts/generate-icons.mjs",
+    "verify-dist": "node scripts/verify-dist.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --maxWorkers=1 && node --test testbed/server-test.mjs",
     "testbed": "node testbed/server.mjs",
-    "check": "npm run typecheck && npm test && npm run build"
+    "check": "npm run typecheck && npm test && npm run build && npm run verify-dist"
   },
   "devDependencies": {
     "@types/chrome": "^0.3.5",
     "esbuild": "^0.28.2",
     "jsdom": "^29.1.1",
+    "prettier": "^3.9.10",
     "typescript": "^7.0.2",
     "vitest": "^5.0.4"
   }

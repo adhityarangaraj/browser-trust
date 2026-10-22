@@ -16,7 +16,10 @@ npm ci
 npm run typecheck
 npm test
 npm run build
-npm run check
+npm run check         # typecheck + tests + build + verify-dist
+npm run icons         # regenerate 16/48/128 PNGs under public/icons/
+npm run format        # Prettier write
+npm run format:check  # Prettier check
 ```
 
 To load the extension, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select the generated `dist/` directory. After each build, reload the extension from that page.
@@ -100,6 +103,10 @@ The testbed accepts only its fixed synthetic JSON payload, enforces a small requ
 - Form events and later requests are not proof that form data was transmitted. BrowserTrust never collects form values, raw storage/cookie values, clipboard contents, or network bodies.
 - BrowserTrust cannot comprehensively inspect another extension's internal behavior.
 - Findings are deterministic heuristics with explicit evidence and limitations. No event correlation can prove causation when only timing and metadata are available.
+
+## Future work
+
+Items deliberately out of scope so far: ESLint (Prettier is wired, the lint pass can land alongside a dependency bump); a Playwright or Puppeteer smoke test that loads `dist/` into headless Chrome and walks the testbed demo end-to-end; a `system.worker.woken` lifecycle event (rate-limited so cold starts don't flood the ring buffer); a settings UI exposing the rule thresholds (`FORM_NETWORK_WINDOW_MS`, `REPEATED_POST_*`, retention sizes) that currently live as constants in `src/analysis/rules/index.ts`; and real screenshots of each popup state for the top of this README.
 
 ## Verification
 
