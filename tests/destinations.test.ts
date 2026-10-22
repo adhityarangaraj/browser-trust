@@ -34,4 +34,33 @@ describe('summarizeDestinations', () => {
     });
     expect(summarizeDestinations([incomplete])).toEqual([]);
   });
+
+  it('merges status codes and error counts from completed/failed events by requestId', () => {
+    const sent = createEvent({
+      category: 'network', action: 'request.sent', source: { origin: 'https://shop.example', tabId: 1 },
+      destination: { host: 'tracker.example', origin: 'https://tracker.example', url: 'https://tracker.example/a', method: 'POST', isThirdParty: true },
+      evidence: { collector: 'network.webrequest', mechanism: 'extension-api', details: { requestId: 'r-1' } },
+      provenance: 'observed',
+    }, { newId: () => 's1', now: () => 1 });
+    const completed = createEvent({
+      category: 'network', action: 'request.completed', source: { origin: 'https://shop.example', tabId: 1 },
+      destination: { host: 'tracker.example', origin: 'https://tracker.example', method: 'POST' },
+      evidence: { collector: 'network.webrequest', mechanism: 'extension-api', details: { requestId: 'r-1', statusCode: 204 } },
+      provenance: 'observed',
+    }, { newId: () => 'c1', now: () => 2 });
+    const failed = createEvent({
+      category: 'network', action: 'request.failed', source: { origin: 'https://shop.example', tabId: 1 },
+      destination: { host: 'tracker.example', origin: 'https://tracker.example', method: 'POST' },
+      evidence: { collector: 'network.webrequest', mechanism: 'extension-api', details: { requestId: 'r-2', error: 'net::ERR_FAILED' } },
+      provenance: 'observed',
+    }, { newId: () => 'f1', now: () => 3 });
+    const [summary] = summarizeDestinations([sent, completed, failed]);
+    expect(summary).toMatchObject({
+      host: 'tracker.example',
+      observationCount: 1, // only request.sent counts, completions do not double
+      statusCodes: [204],
+      errorCount: 1,
+      anyThirdParty: true,
+    });
+  });
 });

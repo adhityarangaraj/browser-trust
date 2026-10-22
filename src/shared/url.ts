@@ -1,3 +1,4 @@
+import { isCrossSite } from './psl';
 import type { EventDestination } from './types';
 
 export interface UrlDescription {
@@ -44,12 +45,24 @@ export function toDestination(
   sourceOrigin: string,
   extra: { method?: string; resourceType?: string } = {},
 ): EventDestination {
+  const isCrossOrigin = description.origin !== sourceOrigin;
+  let isThirdParty: boolean | undefined;
+  if (description.host) {
+    let sourceHost: string | undefined;
+    try {
+      sourceHost = sourceOrigin ? new URL(sourceOrigin).host : undefined;
+    } catch {
+      sourceHost = undefined;
+    }
+    if (sourceHost) isThirdParty = isCrossSite(sourceHost, description.host);
+  }
   return {
     origin: description.origin,
     ...(description.host ? { host: description.host } : {}),
     url: description.url,
     ...(extra.method ? { method: extra.method } : {}),
     ...(extra.resourceType ? { resourceType: extra.resourceType } : {}),
-    isCrossOrigin: description.origin !== sourceOrigin,
+    isCrossOrigin,
+    ...(isThirdParty !== undefined ? { isThirdParty } : {}),
   };
 }

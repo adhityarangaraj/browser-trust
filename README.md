@@ -35,11 +35,11 @@ Monitoring is enabled by default, but BrowserTrust observes no site until host a
 
 ## What BrowserTrust observes
 
-- **Browser network metadata:** the `webRequest` collector records destination host and path (query and fragment removed), method, resource type, source context, and whether query parameters existed and how many. It listens before the response, so HTTP status is not available. It does not read headers or request/response bodies. Evidence is labelled `extension-api`.
+- **Browser network metadata:** the `webRequest` collector records destination host and path (query and fragment removed), method, resource type, source context, and whether query parameters existed and how many. It emits a `request.sent` event before the response and, when available, matching `request.completed` events carrying the HTTP status code and `request.failed` events carrying the Chrome error string. All three events share a `requestId` so the destinations view can merge them without double-counting. It does not read headers or request/response bodies. Evidence is labelled `extension-api`.
 - **Page activity:** isolated observers report page load, added script/iframe/form elements, field edits, and form submission. They store structure and metadata, never field names or values.
 - **Selected page API calls:** MAIN-world wrappers report calls through fetch, XHR, beacon, WebSocket, Web Storage methods, cookies, clipboard, geolocation, media capture, and scripted form submission entry points. The relay treats page-world messages as untrusted, limits their size/rate, and labels them `main-world-hook`.
 - **Event processing:** all events pass through `EventPipeline`, which validates and normalizes them before storage. Content event source identity is derived from the browser message sender. Event storage is a local 1,000-event ring buffer.
-- **Destinations:** the popup groups network observations by hostname and shows observed methods, source page origins, evidence mechanisms, and latest observation time. Counts are observations, not deduplicated unique requests. No HTTP response status is currently collected.
+- **Destinations:** the popup groups network observations by hostname and shows observed methods, source page origins, evidence mechanisms, HTTP status codes (merged from `request.completed`), failure counts (from `request.failed`), a `third-party` label when any observation to the host was cross-site, and latest observation time. Counts are `request.sent` observations only; completions never double-count. Third-party is derived from a trimmed registrable-domain heuristic (not the full Public Suffix List), so uncommon multi-label TLDs may understate cross-site relationships.
 
 ## Deterministic findings
 

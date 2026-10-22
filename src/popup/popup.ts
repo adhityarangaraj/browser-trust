@@ -71,6 +71,8 @@ function eventLabel(event: BrowserTrustEvent): string {
     'form.submitted': 'Form submitted',
     'form.submit_called': 'Script submitted a form',
     'request.sent': 'Network request observed',
+    'request.completed': 'Network request completed',
+    'request.failed': 'Network request failed',
     'storage.write': 'Storage write',
     'storage.read': 'Storage read',
     'storage.remove': 'Storage item removed',
@@ -212,7 +214,12 @@ function renderDestinations(events: BrowserTrustEvent[], findings: Finding[]): v
     host.textContent = destination.host;
     const meta = document.createElement('p');
     meta.className = 'meta';
-    meta.textContent = `${destination.observationCount} observation(s) · ${destination.methods.join(', ') || 'method unavailable'} · from ${destination.sourceOrigins.join(', ')} · via ${destination.sources.join(', ')} · latest ${formatTime(destination.lastObservedAt)}`;
+    const statusPart = destination.statusCodes.length > 0
+      ? ` · status ${destination.statusCodes.join(', ')}`
+      : '';
+    const errorPart = destination.errorCount > 0 ? ` · ${destination.errorCount} failed` : '';
+    const partyPart = destination.anyThirdParty ? ' · third-party' : '';
+    meta.textContent = `${destination.observationCount} observation(s) · ${destination.methods.join(', ') || 'method unavailable'} · from ${destination.sourceOrigins.join(', ')} · via ${destination.sources.join(', ')}${statusPart}${errorPart}${partyPart} · latest ${formatTime(destination.lastObservedAt)}`;
     row.append(host, meta);
 
     const eventLinks = document.createElement('p');

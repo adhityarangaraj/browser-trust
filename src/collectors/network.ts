@@ -13,6 +13,34 @@ export interface RequestDetails {
   frameId: number;
   initiator?: string;
   documentUrl?: string;
+  requestId?: string;
+}
+
+/** What onCompleted gives us: identity, status, final URL. */
+export interface CompletedDetails {
+  url: string;
+  method: string;
+  type: string;
+  tabId: number;
+  frameId: number;
+  statusCode: number;
+  initiator?: string;
+  documentUrl?: string;
+  requestId?: string;
+  fromCache?: boolean;
+}
+
+/** What onErrorOccurred gives us: identity and error description. */
+export interface ErrorDetails {
+  url: string;
+  method: string;
+  type: string;
+  tabId: number;
+  frameId: number;
+  error: string;
+  initiator?: string;
+  documentUrl?: string;
+  requestId?: string;
 }
 
 /**
@@ -54,6 +82,82 @@ export function buildNetworkEvent(details: RequestDetails): NewEvent | undefined
         hasQuery: destination.hasQuery,
         queryParamCount: destination.queryParamCount,
         initiatorKnown,
+        ...(details.requestId ? { requestId: details.requestId } : {}),
+      },
+    },
+    provenance: 'observed',
+  };
+}
+
+/**
+ * Converts an onCompleted record to a `request.completed` event. The same
+ * requestId appears on the corresponding `request.sent` event so views can
+ * merge them.
+ */
+export function buildCompletedEvent(details: CompletedDetails): NewEvent | undefined {
+  if (details.tabId < 0) return undefined;
+  if (details.initiator?.startsWith('chrome-extension://')) return undefined;
+  const destination = describeUrl(details.url);
+  if (!destination) return undefined;
+  const initiator = details.initiator ?? details.documentUrl;
+  const initiatorDescription = initiator ? describeUrl(initiator) : undefined;
+  const sourceOrigin = initiatorDescription?.origin ?? destination.origin;
+  return {
+    category: 'network',
+    action: 'request.completed',
+    source: {
+      origin: sourceOrigin,
+      ...(initiatorDescription ? { url: initiatorDescription.url } : {}),
+      tabId: details.tabId,
+      frameId: details.frameId,
+    },
+    destination: toDestination(destination, sourceOrigin, {
+      method: details.method,
+      resourceType: details.type,
+    }),
+    evidence: {
+      collector: NETWORK_COLLECTOR_ID,
+      mechanism: 'extension-api',
+      details: {
+        statusCode: details.statusCode,
+        resourceType: details.type,
+        ...(details.fromCache !== undefined ? { fromCache: details.fromCache } : {}),
+        ...(details.requestId ? { requestId: details.requestId } : {}),
+      },
+    },
+    provenance: 'observed',
+  };
+}
+
+/** Converts an onErrorOccurred record to a `request.failed` event. */
+export function buildErrorEvent(details: ErrorDetails): NewEvent | undefined {
+  if (details.tabId < 0) return undefined;
+  if (details.initiator?.startsWith('chrome-extension://')) return undefined;
+  const destination = describeUrl(details.url);
+  if (!destination) return undefined;
+  const initiator = details.initiator ?? details.documentUrl;
+  const initiatorDescription = initiator ? describeUrl(initiator) : undefined;
+  const sourceOrigin = initiatorDescription?.origin ?? destination.origin;
+  return {
+    category: 'network',
+    action: 'request.failed',
+    source: {
+      origin: sourceOrigin,
+      ...(initiatorDescription ? { url: initiatorDescription.url } : {}),
+      tabId: details.tabId,
+      frameId: details.frameId,
+    },
+    destination: toDestination(destination, sourceOrigin, {
+      method: details.method,
+      resourceType: details.type,
+    }),
+    evidence: {
+      collector: NETWORK_COLLECTOR_ID,
+      mechanism: 'extension-api',
+      details: {
+        error: details.error,
+        resourceType: details.type,
+        ...(details.requestId ? { requestId: details.requestId } : {}),
       },
     },
     provenance: 'observed',
@@ -78,13 +182,34 @@ export function createNetworkCollector(): Collector {
     isAvailable,
     attach(context) {
       if (attached || !isAvailable()) return;
-      chrome.webRequest.onBeforeRequest.addListener(
-        (details) => {
-          const event = buildNetworkEvent(details);
-          if (event) context.emit(event).catch((e: unknown) => console.error('BrowserTrust: network event dropped', e));
-        },
-        { urls: ['<all_urls>'] },
-      );
+      const filter: chrome.webRequest.RequestFilter = { urls: ['<all_urls>'] };
+      chrome.webRequest.onBeforeRequest.addListener((details) => {
+        const event = buildNetworkEvent(details);
+        if (event) context.emit(event).catch((e: unknown) => console.error('BrowserTrust: network event dropped', e));
+      }, filter);
+      // onCompleted / onErrorOccurred emit optional listeners too; if either
+      // throws (older Chrome shapes), fall through without blocking the
+      // base listener we already installed.
+      if (typeof chrome.webRequest.onCompleted?.addListener === 'function') {
+        try {
+          chrome.webRequest.onCompleted.addListener((details) => {
+            const event = buildCompletedEvent(details);
+            if (event) context.emit(event).catch((e: unknown) => console.error('BrowserTrust: completed event dropped', e));
+          }, filter);
+        } catch (error) {
+          console.error('BrowserTrust: onCompleted registration failed', error);
+        }
+      }
+      if (typeof chrome.webRequest.onErrorOccurred?.addListener === 'function') {
+        try {
+          chrome.webRequest.onErrorOccurred.addListener((details) => {
+            const event = buildErrorEvent(details);
+            if (event) context.emit(event).catch((e: unknown) => console.error('BrowserTrust: error event dropped', e));
+          }, filter);
+        } catch (error) {
+          console.error('BrowserTrust: onErrorOccurred registration failed', error);
+        }
+      }
       // Mark only after registration succeeds. With an ungranted optional
       // permission Chrome may throw; a later permission grant must retry.
       attached = true;

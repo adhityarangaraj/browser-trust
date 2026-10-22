@@ -1,6 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createEvent } from '../src/core/normalize';
-import { buildNetworkEvent, createNetworkCollector, type RequestDetails } from '../src/collectors/network';
+import {
+  buildCompletedEvent,
+  buildErrorEvent,
+  buildNetworkEvent,
+  createNetworkCollector,
+  type CompletedDetails,
+  type ErrorDetails,
+  type RequestDetails,
+} from '../src/collectors/network';
 
 const base: RequestDetails = {
   url: 'https://tracker.example/collect?id=SECRET&v=1#x',
@@ -36,6 +44,56 @@ describe('buildNetworkEvent', () => {
   it('ignores tab-less and extension traffic', () => {
     expect(buildNetworkEvent({ ...base, tabId: -1 })).toBeUndefined();
     expect(buildNetworkEvent({ ...base, initiator: 'chrome-extension://abc' })).toBeUndefined();
+  });
+
+  it('carries requestId through so completed/failed events can merge', () => {
+    const input = buildNetworkEvent({ ...base, requestId: 'r-42' })!;
+    expect(input.evidence.details.requestId).toBe('r-42');
+    expect(input.destination?.isThirdParty).toBe(true);
+  });
+});
+
+describe('buildCompletedEvent', () => {
+  const details: CompletedDetails = {
+    url: 'https://tracker.example/collect',
+    method: 'POST',
+    type: 'xmlhttprequest',
+    tabId: 4,
+    frameId: 0,
+    initiator: 'https://shop.example',
+    statusCode: 204,
+    requestId: 'r-42',
+    fromCache: false,
+  };
+
+  it('records the status code and requestId without widening the destination', () => {
+    const input = buildCompletedEvent(details)!;
+    expect(input.action).toBe('request.completed');
+    expect(input.evidence.details).toMatchObject({ statusCode: 204, requestId: 'r-42' });
+  });
+
+  it('is skipped for extension-initiated or tab-less traffic', () => {
+    expect(buildCompletedEvent({ ...details, tabId: -1 })).toBeUndefined();
+    expect(buildCompletedEvent({ ...details, initiator: 'chrome-extension://abc' })).toBeUndefined();
+  });
+});
+
+describe('buildErrorEvent', () => {
+  const details: ErrorDetails = {
+    url: 'https://tracker.example/collect',
+    method: 'POST',
+    type: 'xmlhttprequest',
+    tabId: 4,
+    frameId: 0,
+    initiator: 'https://shop.example',
+    error: 'net::ERR_FAILED',
+    requestId: 'r-42',
+  };
+
+  it('records the error string and requestId', () => {
+    const input = buildErrorEvent(details)!;
+    expect(input.action).toBe('request.failed');
+    expect(input.evidence.details).toMatchObject({ error: 'net::ERR_FAILED', requestId: 'r-42' });
   });
 });
 
