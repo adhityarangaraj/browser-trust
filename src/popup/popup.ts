@@ -3,6 +3,7 @@ import { summarizeDestinations } from '../analysis/destinations';
 import { buildReport, reportToJson, reportToMarkdown, type Report } from '../analysis/report';
 import type { Finding } from '../analysis/types';
 import { ALL_SITES_PATTERNS, analyzeUrl, isOriginCovered } from '../config/access';
+import { loadPreferences, savePreferences, type Preferences } from '../config/preferences';
 import { sendRequest, type StateSnapshot } from '../shared/messages';
 import type { BrowserTrustEvent } from '../shared/types';
 
@@ -39,6 +40,7 @@ const refreshButton = el<HTMLButtonElement>('refresh');
 const refreshStatus = el('refresh-status');
 const copyReportButton = document.getElementById('copy-report') as HTMLButtonElement | null;
 const downloadReportButton = document.getElementById('download-report') as HTMLButtonElement | null;
+const themeToggle = document.getElementById('theme-toggle') as HTMLButtonElement | null;
 const behaviorList = el('behavior-list');
 const activityLink = document.querySelector<HTMLAnchorElement>('.view-activity');
 const activityPage = document.body.dataset.page === 'activity';
@@ -53,6 +55,10 @@ let timelineSearchQuery = '';
 let timelineAllEvents: BrowserTrustEvent[] = [];
 let flashResetTimer: number | undefined;
 let latestReport: Report | undefined;
+let preferences: Preferences = {
+  schemaVersion: 1, theme: 'dark', pinnedFindingIds: [], dismissedFindingIds: [],
+};
+let showDismissed = false;
 
 interface ActiveTab { url?: string; id?: number; }
 let currentTab: ActiveTab = {};
@@ -105,6 +111,14 @@ function formatTime(timestamp: number): string {
   return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
+function applyTheme(theme: Preferences['theme']): void {
+  document.documentElement.dataset.theme = theme;
+  if (themeToggle) {
+    themeToggle.textContent = theme === 'light' ? 'Dark' : 'Light';
+    themeToggle.setAttribute('aria-pressed', String(theme === 'light'));
+  }
+}
+
 function renderMonitoring(state: StateSnapshot): void {
   toggle.checked = state.settings.monitoringEnabled;
   monitoringStatus.textContent = state.settings.monitoringEnabled ? 'Monitoring enabled' : 'Monitoring paused';
@@ -151,13 +165,37 @@ function renderCoverage(state: StateSnapshot, url: string | undefined): boolean 
   return covered;
 }
 
+function togglePin(id: string): void {
+  const pinned = new Set(preferences.pinnedFindingIds);
+  if (pinned.has(id)) pinned.delete(id);
+  else pinned.add(id);
+  preferences = { ...preferences, pinnedFindingIds: [...pinned] };
+  void savePreferences(preferences).then(() => void refresh());
+}
+
+function toggleDismiss(id: string): void {
+  const dismissed = new Set(preferences.dismissedFindingIds);
+  if (dismissed.has(id)) dismissed.delete(id);
+  else {
+    dismissed.add(id);
+    // Dismissing a pinned finding also unpins it.
+    preferences = { ...preferences, pinnedFindingIds: preferences.pinnedFindingIds.filter((pid) => pid !== id) };
+  }
+  preferences = { ...preferences, dismissedFindingIds: [...dismissed] };
+  void savePreferences(preferences).then(() => void refresh());
+}
+
 function appendFinding(
   item: Finding,
   eventsById: Map<string, BrowserTrustEvent>,
   visibleEventIds: Set<string>,
 ): HTMLLIElement {
+  const isPinned = preferences.pinnedFindingIds.includes(item.id);
+  const isDismissed = preferences.dismissedFindingIds.includes(item.id);
   const row = document.createElement('li');
   row.id = item.id;
+  if (isPinned) row.classList.add('finding-pinned');
+  if (isDismissed) row.classList.add('finding-dismissed');
   const details = document.createElement('details');
   const summary = document.createElement('summary');
   summary.className = 'finding-summary';
@@ -168,6 +206,29 @@ function appendFinding(
   title.className = 'finding-title';
   title.textContent = item.title;
   summary.append(severity, title);
+  const controls = document.createElement('span');
+  controls.className = 'finding-controls';
+  const pinButton = document.createElement('button');
+  pinButton.type = 'button';
+  pinButton.className = `finding-action${isPinned ? ' finding-action-on' : ''}`;
+  pinButton.textContent = isPinned ? 'Unpin' : 'Pin';
+  pinButton.setAttribute('aria-pressed', String(isPinned));
+  pinButton.addEventListener('click', (clickEvent) => {
+    clickEvent.preventDefault();
+    clickEvent.stopPropagation();
+    togglePin(item.id);
+  });
+  const dismissButton = document.createElement('button');
+  dismissButton.type = 'button';
+  dismissButton.className = 'finding-action';
+  dismissButton.textContent = isDismissed ? 'Restore' : 'Dismiss';
+  dismissButton.addEventListener('click', (clickEvent) => {
+    clickEvent.preventDefault();
+    clickEvent.stopPropagation();
+    toggleDismiss(item.id);
+  });
+  controls.append(pinButton, dismissButton);
+  summary.append(controls);
   details.append(summary);
 
   const explanation = document.createElement('p');
@@ -213,7 +274,37 @@ function renderFindings(findings: Finding[], events: BrowserTrustEvent[]): void 
   findingsEmpty.hidden = findings.length > 0;
   const byId = new Map(events.map((event) => [event.id, event]));
   const visibleEventIds = new Set(events.slice(0, 15).map((event) => event.id));
-  for (const item of findings.slice(0, activityPage ? 500 : 3)) findingsList.append(appendFinding(item, byId, visibleEventIds));
+  const pinned = new Set(preferences.pinnedFindingIds);
+  const dismissed = new Set(preferences.dismissedFindingIds);
+  // Pinned first (in finding order), then undismissed in their natural order,
+  // then (if the user asked to see them) dismissed ones at the bottom.
+  const pinnedList = findings.filter((item) => pinned.has(item.id));
+  const activeList = findings.filter((item) => !pinned.has(item.id) && !dismissed.has(item.id));
+  const dismissedList = findings.filter((item) => dismissed.has(item.id) && !pinned.has(item.id));
+  const cap = activityPage ? 500 : 3;
+  const combined = [...pinnedList, ...activeList];
+  for (const item of combined.slice(0, cap)) findingsList.append(appendFinding(item, byId, visibleEventIds));
+
+  if (dismissedList.length > 0) {
+    const foot = document.createElement('li');
+    foot.className = 'findings-foot';
+    const link = document.createElement('button');
+    link.type = 'button';
+    link.className = 'finding-action';
+    link.textContent = showDismissed
+      ? `Hide ${dismissedList.length} dismissed`
+      : `Show ${dismissedList.length} dismissed`;
+    link.addEventListener('click', (clickEvent) => {
+      clickEvent.preventDefault();
+      showDismissed = !showDismissed;
+      renderFindings(findings, events);
+    });
+    foot.append(link);
+    findingsList.append(foot);
+    if (showDismissed) {
+      for (const item of dismissedList.slice(0, cap)) findingsList.append(appendFinding(item, byId, visibleEventIds));
+    }
+  }
 }
 
 function renderDestinations(events: BrowserTrustEvent[], findings: Finding[]): void {
@@ -359,12 +450,15 @@ async function refresh(): Promise<void> {
   refreshButton.disabled = true;
   refreshStatus.textContent = 'Refreshing…';
   try {
-    const [state, events, findings, tab] = await Promise.all([
+    const [state, events, findings, tab, prefs] = await Promise.all([
       sendRequest<'get-state'>({ type: 'get-state' }),
       sendRequest<'list-events'>({ type: 'list-events', limit: 1000 }),
       sendRequest<'list-findings'>({ type: 'list-findings', limit: 500 }),
       activeTab(),
+      loadPreferences(),
     ]);
+    preferences = prefs;
+    applyTheme(prefs.theme);
     currentTab = tab;
     if (activityLink) activityLink.href = `activity.html?tab=${encodeURIComponent(String(tab.id ?? ''))}`;
     renderMonitoring(state);
@@ -480,6 +574,13 @@ function reportFilename(report: Report, extension: 'json' | 'md'): string {
   const stamp = report.generatedAt.replace(/[:.]/g, '-');
   return `browsertrust-${host}-${stamp}.${extension}`;
 }
+
+themeToggle?.addEventListener('click', () => {
+  const next: Preferences['theme'] = preferences.theme === 'light' ? 'dark' : 'light';
+  preferences = { ...preferences, theme: next };
+  applyTheme(next);
+  void savePreferences(preferences);
+});
 
 copyReportButton?.addEventListener('click', () => {
   const report = latestReport;

@@ -9,10 +9,13 @@
   <body>
     <header class="topbar">
       <div class="brand"><span class="brand-mark" aria-hidden="true">B</span><div><h1>BrowserTrust</h1><p id="site-host" class="host-pill">Current website</p></div></div>
-      <label class="switch" title="Turn monitoring on or off">
-        <input type="checkbox" id="monitoring-toggle" aria-label="Monitoring enabled" />
-        <span class="slider"></span>
-      </label>
+      <div class="topbar-controls">
+        <button id="theme-toggle" class="theme-toggle secondary" title="Switch between dark and light theme" aria-label="Switch theme">Light</button>
+        <label class="switch" title="Turn monitoring on or off">
+          <input type="checkbox" id="monitoring-toggle" aria-label="Monitoring enabled" />
+          <span class="slider"></span>
+        </label>
+      </div>
     </header>
 
     <div id="error-box" class="notice error" role="alert" hidden></div>

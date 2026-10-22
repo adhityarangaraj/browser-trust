@@ -70,6 +70,8 @@ Assessment states:
 
 All event-derived text is rendered with DOM text nodes/`textContent`. The popup does not display mock findings, fabricated charts, or a security score.
 
+Each finding card has small **Pin** and **Dismiss** controls. Pinned findings sort to the top of the list and gain an orange edge; dismissed findings are hidden and reachable through a "Show N dismissed" link at the bottom. State is persisted locally in `chrome.storage.local` as `bt.preferences` (pin/dismiss id lists are capped and sanitized on load), scoped per-browser-profile, and reset by **Clear activity**. The theme toggle in the top bar switches between the default dark theme and a light theme that reuses the same red/green/orange accent tokens; the choice is persisted in the same preference bundle and applied before each render.
+
 ## Repeatable local demo
 
 Start the loopback-only synthetic site and collector:

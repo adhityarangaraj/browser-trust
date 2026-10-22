@@ -12,6 +12,7 @@ import {
   isContentScriptRegistered,
   syncContentScripts,
 } from '../config/access';
+import { clearFindingPreferences } from '../config/preferences';
 import { loadSettings, saveSettings } from '../config/settings';
 import { EventPipeline } from '../core/pipeline';
 import { chromeStorageAdapter, EventStore } from '../core/store';
@@ -97,6 +98,9 @@ async function handle(request: Request, sender: chrome.runtime.MessageSender): P
       await store.clear();
       await analysis.drain();
       await findingStore.clear();
+      // Pin/dismiss state is keyed by finding ID, so wiping the finding store
+      // leaves orphaned ids. Clear those too; theme preference is kept.
+      await clearFindingPreferences();
       return null;
     default:
       throw new Error(`Unknown request: ${(request as { type: string }).type}`);
