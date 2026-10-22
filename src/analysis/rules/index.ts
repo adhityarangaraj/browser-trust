@@ -5,6 +5,8 @@ const FORM_NETWORK_WINDOW_MS = 30_000;
 const CAPABILITY_NETWORK_WINDOW_MS = 15_000;
 const REPEATED_POST_WINDOW_MS = 60_000;
 const REPEATED_POST_THRESHOLD = 3;
+/** Twice the base threshold inside the same minute escalates the finding to high severity. */
+const REPEATED_POST_HIGH_THRESHOLD = 6;
 
 const NO_PAYLOAD_LIMITATION = 'Request payloads are not collected, so the event does not show what data was sent.';
 const TEMPORAL_LIMITATION = 'The events are temporally associated; this does not establish causation or data transmission.';
@@ -115,7 +117,7 @@ export const sensitiveCapabilityRule: Rule = {
 
 export const capabilityNetworkRule: Rule = {
   id: 'sequence.capability-network',
-  description: 'Relates selected sensitive API calls to a later browser-observed request in the same page context within 15 seconds.',
+  description: 'Relates selected sensitive API calls to a later browser-observed request in the same page context within 15 seconds. Escalates to high severity when the request is a cross-origin POST.',
   evaluate(event, history) {
     if (!isPageNetworkRequest(event)) return [];
     const capabilityEvent = [...history].reverse().find((candidate) =>
@@ -125,12 +127,21 @@ export const capabilityNetworkRule: Rule = {
     if (!capabilityEvent) return [];
     const capability = capabilityName(capabilityEvent);
     const host = event.destination?.host;
+    const method = event.destination?.method?.toUpperCase();
+    const isCrossOriginPost = method === 'POST' && event.destination?.isCrossOrigin === true;
+    const severity: Finding['severity'] = isCrossOriginPost ? 'high' : 'medium';
+    const title = isCrossOriginPost
+      ? `${capability} activity followed by a cross-origin POST`
+      : `Request followed ${capability} activity`;
+    const explanation = isCrossOriginPost
+      ? `A ${capability} API call was followed by a cross-origin POST${host ? ` to ${host}` : ''} within 15 seconds from the same page context. A sensitive capability feeding into a cross-origin POST warrants closer review; the request body is not collected so this does not prove the capability's data was transmitted.`
+      : `A ${capability} API call was followed by a browser-observed request${host ? ` to ${host}` : ''} within 15 seconds from the same page context.`;
     return [finding({
       ruleId: this.id,
-      title: `Request followed ${capability} activity`,
+      title,
       category: 'communication',
-      explanation: `A ${capability} API call was followed by a browser-observed request${host ? ` to ${host}` : ''} within 15 seconds from the same page context.`,
-      severity: 'medium',
+      explanation,
+      severity,
       events: [capabilityEvent, event],
       evidenceStrength: 'temporal-association',
       limitations: [NO_PAYLOAD_LIMITATION, TEMPORAL_LIMITATION, 'The capability event was reported through a page-world hook that the page can forge or suppress.'],
@@ -141,7 +152,7 @@ export const capabilityNetworkRule: Rule = {
 
 export const repeatedExternalPostRule: Rule = {
   id: 'pattern.repeated-cross-origin-post',
-  description: 'Highlights three or more browser-observed cross-origin POST requests to the same host in one minute and tab.',
+  description: 'Highlights three or more browser-observed cross-origin POST requests to the same host in one minute and tab. A sustained pattern of six or more escalates to high severity.',
   evaluate(event, history) {
     const host = event.destination?.host;
     if (!isPageNetworkRequest(event) || !host || event.destination?.isCrossOrigin !== true ||
@@ -152,18 +163,32 @@ export const repeatedExternalPostRule: Rule = {
       samePage(candidate, event) && inWindow(candidate, event, REPEATED_POST_WINDOW_MS),
     );
     if (matches.length < REPEATED_POST_THRESHOLD) return [];
-    const evidence = matches.slice(0, REPEATED_POST_THRESHOLD);
-    return [finding({
+    const findings: Finding[] = [];
+    findings.push(finding({
       ruleId: this.id,
       title: 'Repeated cross-origin POST requests',
       category: 'communication',
       explanation: `At least ${REPEATED_POST_THRESHOLD} POST request observations to ${host} occurred within one minute from the same page context. This pattern may merit review.`,
       severity: 'medium',
-      events: evidence,
+      events: matches.slice(0, REPEATED_POST_THRESHOLD),
       evidenceStrength: 'repeated-pattern',
       limitations: ['A repeated request pattern does not by itself show malicious intent or reveal request contents.'],
       destinationHost: host,
-    })];
+    }));
+    if (matches.length >= REPEATED_POST_HIGH_THRESHOLD) {
+      findings.push(finding({
+        ruleId: this.id,
+        title: 'Sustained repeated cross-origin POST requests',
+        category: 'communication',
+        explanation: `At least ${REPEATED_POST_HIGH_THRESHOLD} POST request observations to ${host} occurred within one minute from the same page context. A sustained burst of this size warrants closer review; the request bodies are not collected so this does not establish what was sent.`,
+        severity: 'high',
+        events: matches.slice(0, REPEATED_POST_HIGH_THRESHOLD),
+        evidenceStrength: 'repeated-pattern',
+        limitations: ['A repeated request pattern does not by itself show malicious intent or reveal request contents.'],
+        destinationHost: host,
+      }));
+    }
+    return findings;
   },
 };
 

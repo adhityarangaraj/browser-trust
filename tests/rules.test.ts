@@ -101,13 +101,39 @@ describe('deterministic rules', () => {
     expect(analyze([capabilityNetworkRule], [location(), request('other-tab', 2000, 8)])).toEqual([]);
   });
 
+  it('escalates capability-network to high severity when the request is a cross-origin POST', () => {
+    const highFinding = analyze([capabilityNetworkRule], [location(), request('post', 2000, 7, 'collector.example', 'POST')])[0];
+    expect(highFinding?.severity).toBe('high');
+    expect(highFinding?.title).toMatch(/cross-origin POST/);
+    const sameOriginRequest = event({
+      id: 'same-origin', timestamp: 2000, category: 'network', action: 'request.sent', tabId: 7,
+      origin: 'https://shop.example', host: 'shop.example', method: 'POST', mechanism: 'extension-api', crossOrigin: false,
+    });
+    expect(analyze([capabilityNetworkRule], [location(), sameOriginRequest])[0]?.severity).toBe('medium');
+    const getRequest = request('get', 2000, 7, 'collector.example', 'GET');
+    expect(analyze([capabilityNetworkRule], [location(), getRequest])[0]?.severity).toBe('medium');
+  });
+
   it('requires repeated cross-origin POST metadata and anchors the finding to three observations', () => {
     const events = [request('p1', 1000), request('p2', 20_000), request('p3', 60_000), request('p4', 60_001)];
     const findings = analyze([repeatedExternalPostRule], events);
     expect(findings).toHaveLength(1);
     expect(findings[0]?.eventIds).toEqual(['p1', 'p2', 'p3']);
+    expect(findings[0]?.severity).toBe('medium');
     expect(analyze([repeatedExternalPostRule], [request('old1', 1_000), request('old2', 20_000), request('old3', 61_001)])).toEqual([]);
     expect(analyze([repeatedExternalPostRule], [request('get1', 1, 7, 'cdn.example', 'GET')])).toEqual([]);
+  });
+
+  it('escalates to a high-severity finding when the repeated-POST pattern sustains to six observations', () => {
+    const burst = [1, 2, 3, 4, 5, 6].map((i) => request(`p${i}`, 1000 + i * 1000));
+    const findings = analyze([repeatedExternalPostRule], burst);
+    const medium = findings.find((f) => f.severity === 'medium');
+    const high = findings.find((f) => f.severity === 'high');
+    expect(medium?.eventIds).toEqual(['p1', 'p2', 'p3']);
+    expect(high?.eventIds).toEqual(['p1', 'p2', 'p3', 'p4', 'p5', 'p6']);
+    expect(high?.title).toMatch(/sustained/i);
+    // The two findings have distinct IDs so neither dedupes the other.
+    expect(medium?.id).not.toEqual(high?.id);
   });
 
   it('does not flag ordinary external GET requests or page-hook-only metadata', () => {

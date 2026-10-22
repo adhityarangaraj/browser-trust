@@ -45,14 +45,14 @@ Monitoring is enabled by default, but BrowserTrust observes no site until host a
 
 Analysis runs locally after each validated event has been stored. Findings are persisted in `chrome.storage.local`, bounded to the latest 500, and deduplicated by stable rule/event IDs. The popup shows supporting event IDs and timestamps, source page, destination when available, evidence strength, and limitations.
 
-| Rule | Trigger | What it does not establish |
-| --- | --- | --- |
-| Form activity followed by network | A browser-trusted form submit followed within 30 seconds by a browser-observed request from the same tab and page origin, with matching method and destination when those fields exist. | It does not show that form values were sent. The request payload is not collected. |
-| Sensitive capability call | A reported geolocation, clipboard-read, or media-capture API invocation. | It does not prove permission was granted or the API succeeded. Page-world hook messages can be forged or suppressed by the page. |
-| Capability call followed by network | A supported capability call followed within 15 seconds by browser-observed network metadata in the same tab and page origin. | This is temporal association only; it does not prove causation or data transmission. |
-| Repeated cross-origin POST pattern | At least three browser-observed cross-origin POST requests to the same host in 60 seconds from the same tab and page origin. | Repetition alone does not establish malicious intent or reveal request contents. |
+| Rule | Trigger | Severity | What it does not establish |
+| --- | --- | --- | --- |
+| Form activity followed by network | A browser-trusted form submit followed within 30 seconds by a browser-observed request from the same tab and page origin, with matching method and destination when those fields exist. | medium | It does not show that form values were sent. The request payload is not collected. |
+| Sensitive capability call | A reported geolocation, clipboard-read, or media-capture API invocation. | low | It does not prove permission was granted or the API succeeded. Page-world hook messages can be forged or suppressed by the page. |
+| Capability call followed by network | A supported capability call followed within 15 seconds by browser-observed network metadata in the same tab and page origin. Escalates to **high** when that request is a cross-origin POST. | medium / high | This is temporal association only; it does not prove causation or data transmission. The request body is not collected. |
+| Repeated cross-origin POST pattern | At least three browser-observed cross-origin POST requests to the same host in 60 seconds from the same tab and page origin. A sustained burst of six or more emits an additional **high**-severity finding. | medium / high | Repetition alone does not establish malicious intent or reveal request contents. |
 
-These rules produce review findings, not a verdict that a website is safe or malicious. Ordinary external GET requests do not trigger the repeated-POST rule. No arbitrary risk score or confidence percentage is used. The analysis engine runs incrementally against prior stored events; errors are logged and do not reject an already-stored event.
+These rules produce review findings, not a verdict that a website is safe or malicious. Ordinary external GET requests do not trigger the repeated-POST rule. No arbitrary risk score or confidence percentage is used. The analysis engine runs incrementally against prior stored events; errors are logged and do not reject an already-stored event. A high-severity finding promotes the assessment to **Suspicious activity detected**; medium and low findings produce **Review recommended**.
 
 ## Assessment and popup
 
@@ -63,7 +63,7 @@ Assessment states:
 - **Insufficient evidence:** monitoring is off, site access or required permissions are missing, page scripts are not registered, or fewer than three observations including a network event exist for the active tab.
 - **No suspicious activity observed:** monitoring and coverage checks pass, sufficient activity exists, and no configured rule matched. This is not proof the site is safe.
 - **Review recommended:** one or more current findings matched a review rule.
-- **Suspicious activity detected:** reserved for a high-severity finding supported by evidence. Current rules do not assign high severity, so they produce review recommendations instead.
+- **Suspicious activity detected:** at least one current finding carries high severity. Today this is reached by a capability call followed by a cross-origin POST, or by a sustained repeated cross-origin POST burst (six or more in a minute).
 
 All event-derived text is rendered with DOM text nodes/`textContent`. The popup does not display mock findings, fabricated charts, or a security score.
 
