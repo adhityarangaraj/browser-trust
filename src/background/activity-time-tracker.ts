@@ -47,7 +47,7 @@ export class ActiveTimeTracker {
     chrome.windows.onRemoved.addListener(() => void this.reconcile(true));
     chrome.permissions.onAdded.addListener(() => void this.attachOptionalListeners());
     chrome.permissions.onRemoved.addListener((removed) => {
-      if (ACTIVE_TIME_TRACKING_PERMISSIONS.some((permission) => removed.permissions.includes(permission))) {
+      if (ACTIVE_TIME_TRACKING_PERMISSIONS.some((permission) => removed.permissions?.includes(permission))) {
         void this.disableAfterPermissionRemoval();
       }
     });

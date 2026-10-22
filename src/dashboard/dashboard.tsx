@@ -330,7 +330,7 @@ function SitesActivity() {
     let cancelled = false;
     void Promise.all([
       loadHistory(() => cancelled),
-      sendRequest({ type: 'get-activity-time' }).then(setTime).catch(() => undefined),
+      sendRequest<'get-activity-time'>({ type: 'get-activity-time' }).then((snapshot) => setTime(snapshot)).catch(() => undefined),
     ]);
     return () => { cancelled = true; };
   }, [period]);
@@ -360,7 +360,7 @@ function SitesActivity() {
           return;
         }
       }
-      setTime(await sendRequest({ type: 'set-activity-time-tracking', enabled }));
+      setTime(await sendRequest<'set-activity-time-tracking'>({ type: 'set-activity-time-tracking', enabled }));
       setTimeError('');
     } catch {
       setTimeError('Could not update active-time tracking. Check the optional permissions and try again.');
@@ -372,7 +372,7 @@ function SitesActivity() {
   const clearTracking = async () => {
     if (!window.confirm('Clear all locally stored active browsing-time records?')) return;
     try {
-      setTime(await sendRequest({ type: 'clear-activity-time' }));
+      setTime(await sendRequest<'clear-activity-time'>({ type: 'clear-activity-time' }));
       setTimeError('');
     } catch {
       setTimeError('Could not clear the locally stored active-time records.');
@@ -382,7 +382,7 @@ function SitesActivity() {
   const refreshDashboard = async () => {
     await Promise.all([
       loadHistory(),
-      sendRequest({ type: 'get-activity-time' }).then(setTime).catch(() => setTimeError('Could not refresh active-time records.')),
+      sendRequest<'get-activity-time'>({ type: 'get-activity-time' }).then((snapshot) => setTime(snapshot)).catch(() => setTimeError('Could not refresh active-time records.')),
     ]);
   };
 

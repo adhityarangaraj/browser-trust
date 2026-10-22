@@ -17,6 +17,8 @@ const common = {
   outdir,
   legalComments: 'none',
   logLevel: 'info',
+  // Font files are copied into dist/fonts after bundling; preserve their CSS URLs.
+  external: ['fonts/*'],
 };
 
 // The service worker is an ES module (manifest: "type": "module").
