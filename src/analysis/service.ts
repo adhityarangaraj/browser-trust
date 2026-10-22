@@ -1,8 +1,9 @@
 import type { EventPipeline } from '../core/pipeline';
 import type { EventStore } from '../core/store';
+import type { BrowserTrustEvent } from '../shared/types';
 import { analyzeEvent } from './engine';
 import type { FindingStore } from './store';
-import type { Rule } from './types';
+import type { Finding, Rule } from './types';
 
 /** The longest rule window today is the repeated-POST rule at 60 seconds. */
 export const MAX_RULE_WINDOW_MS = 60_000;
@@ -14,6 +15,9 @@ export interface AnalysisConnection {
   drain(): Promise<void>;
 }
 
+/** Fires once per analyzed event with only the findings that were actually appended (not duplicates). */
+export type OnFindingsAdded = (findings: readonly Finding[], triggerEvent: BrowserTrustEvent) => void;
+
 /** Connects validated pipeline events to deterministic rules and local findings storage. */
 export function connectAnalysis(
   pipeline: EventPipeline,
@@ -21,6 +25,7 @@ export function connectAnalysis(
   findings: FindingStore,
   rules: readonly Rule[],
   onError: (error: unknown) => void = (error) => console.error('BrowserTrust: event analysis failed', error),
+  onFindingsAdded?: OnFindingsAdded,
 ): AnalysisConnection {
   let queue: Promise<void> = Promise.resolve();
   const report = (error: unknown) => {
@@ -45,7 +50,14 @@ export function connectAnalysis(
         const history = historyFull.filter((candidate) => candidate.timestamp >= cutoff);
         const produced = analyzeEvent(rules, event, history);
         if (events.getGeneration() !== generationAtEmit) return;
-        await findings.appendMany(produced);
+        const added = await findings.appendMany(produced);
+        if (added.length > 0 && onFindingsAdded) {
+          try {
+            onFindingsAdded(added, event);
+          } catch (callbackError) {
+            report(callbackError);
+          }
+        }
       } catch (error) {
         // The event has already been validated and stored; analysis must not
         // turn a rule or findings-storage failure into a dropped event.

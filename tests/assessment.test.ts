@@ -51,6 +51,50 @@ describe('assessSite', () => {
     expect(assessSite(observations, [finding], context).state).toBe('review-recommended');
     expect(assessSite(observations, [{ ...finding, severity: 'high' }], context).state).toBe('suspicious-activity-detected');
     expect(assessSite(observations, [], context).explanation).toMatch(/not proof/i);
+    // Low-only findings surface but do NOT flip the overall assessment.
+    const lowOnly = assessSite(observations, [{ ...finding, severity: 'low' }], context);
+    expect(lowOnly.state).toBe('no-suspicious-activity-observed');
+    expect(lowOnly.findings).toHaveLength(1);
+    expect(lowOnly.explanation).toMatch(/informational finding/);
+  });
+
+  it('does not promote medium findings on a well-known common host to review', () => {
+    const observations = [event,
+      createEvent({
+        category: 'network', action: 'request.sent', source: { origin: 'https://www.youtube.com', tabId: 4 },
+        destination: { host: 'youtube.com', method: 'GET' },
+        evidence: { collector: 'network.webrequest', mechanism: 'extension-api', details: {} }, provenance: 'observed',
+      }),
+      createEvent({
+        category: 'dom', action: 'element.added', source: { origin: 'https://www.youtube.com', tabId: 4 },
+        evidence: { collector: 'dom.mutations', mechanism: 'content-script', details: {} }, provenance: 'observed',
+      }),
+    ];
+    const allowlistedContext = { ...context, origin: 'https://www.youtube.com', host: 'www.youtube.com' };
+    const result = assessSite(observations, [finding], allowlistedContext);
+    expect(result.state).toBe('no-suspicious-activity-observed');
+    expect(result.findings).toHaveLength(1);
+    expect(result.explanation).toMatch(/built-in list of well-known/);
+    // The same medium finding on a non-allowlisted host still promotes.
+    const unlistedContext = { ...context, origin: 'https://unknown.example', host: 'unknown.example' };
+    expect(assessSite(observations, [finding], unlistedContext).state).toBe('review-recommended');
+  });
+
+  it('still escalates high-severity findings even on allowlisted hosts', () => {
+    const observations = [event,
+      createEvent({
+        category: 'network', action: 'request.sent', source: { origin: 'https://www.youtube.com', tabId: 4 },
+        destination: { host: 'youtube.com', method: 'POST' },
+        evidence: { collector: 'network.webrequest', mechanism: 'extension-api', details: {} }, provenance: 'observed',
+      }),
+      createEvent({
+        category: 'dom', action: 'element.added', source: { origin: 'https://www.youtube.com', tabId: 4 },
+        evidence: { collector: 'dom.mutations', mechanism: 'content-script', details: {} }, provenance: 'observed',
+      }),
+    ];
+    const allowlistedContext = { ...context, origin: 'https://www.youtube.com', host: 'www.youtube.com' };
+    const result = assessSite(observations, [{ ...finding, severity: 'high' }], allowlistedContext);
+    expect(result.state).toBe('suspicious-activity-detected');
   });
 
   it('scopes counts to the current tab, including frames, and excludes other tabs', () => {

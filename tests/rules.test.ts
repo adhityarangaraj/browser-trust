@@ -183,11 +183,11 @@ describe('deterministic rules', () => {
     }, { newId: () => args.id, now: () => args.timestamp });
   }
 
-  it('flags hidden cross-origin iframes but ignores visible or same-origin ones', () => {
+  it('flags hidden cross-origin iframes as informational but ignores visible or same-origin ones', () => {
     const hiddenCross = dom({ id: 'iframe-hc', timestamp: 1, tag: 'iframe', host: 'tracker.example', isCrossOrigin: true, hiddenHint: true });
     const findings = analyze([hiddenCrossOriginIframeRule], [hiddenCross]);
     expect(findings).toHaveLength(1);
-    expect(findings[0]).toMatchObject({ severity: 'medium', destinationHost: 'tracker.example' });
+    expect(findings[0]).toMatchObject({ severity: 'low', destinationHost: 'tracker.example' });
     const visibleCross = dom({ id: 'iframe-vc', timestamp: 2, tag: 'iframe', host: 'tracker.example', isCrossOrigin: true, hiddenHint: false });
     expect(analyze([hiddenCrossOriginIframeRule], [visibleCross])).toEqual([]);
     const hiddenSame = dom({ id: 'iframe-hs', timestamp: 3, tag: 'iframe', host: 'shop.example', isCrossOrigin: false, hiddenHint: true });

@@ -194,7 +194,7 @@ export const repeatedExternalPostRule: Rule = {
 
 export const hiddenCrossOriginIframeRule: Rule = {
   id: 'dom.hidden-cross-origin-iframe',
-  description: 'Flags iframes added to the page that are both cross-origin and hidden via attributes or inline style.',
+  description: 'Notes iframes added to the page that are both cross-origin and hidden via attributes or inline style. Informational: large sites use hidden cross-origin iframes for ads, analytics and embedded players, so this does not by itself warrant review.',
   evaluate(event) {
     if (event.category !== 'dom' || event.action !== 'element.added') return [];
     if (event.evidence.details.tag !== 'iframe') return [];
@@ -206,8 +206,8 @@ export const hiddenCrossOriginIframeRule: Rule = {
       ruleId: this.id,
       title: 'Hidden cross-origin iframe added',
       category: 'communication',
-      explanation: `A hidden or zero-size iframe pointing to ${host} was added to the page. Hidden embeds from another origin can be used for silent tracking or beacons and warrant review.`,
-      severity: 'medium',
+      explanation: `A hidden or zero-size iframe pointing to ${host} was added to the page. Hidden embeds from another origin are common on large sites (ads, analytics, embedded players); this records the observation without implying intent.`,
+      severity: 'low',
       events: [event],
       evidenceStrength: 'direct-observation',
       limitations: [

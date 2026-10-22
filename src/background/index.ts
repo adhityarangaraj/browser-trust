@@ -7,6 +7,7 @@ import { collectors } from '../collectors';
 import { rules } from '../analysis/rules';
 import { connectAnalysis } from '../analysis/service';
 import { FindingStore } from '../analysis/store';
+import { createAlertHandle } from './alerts';
 import {
   getGrantedOrigins,
   isContentScriptRegistered,
@@ -26,7 +27,8 @@ const collectorManager = new CollectorManager(collectors, async (event) => {
   await pipeline.emit(event);
 });
 
-const analysis = connectAnalysis(pipeline, store, findingStore, rules);
+const alerts = createAlertHandle();
+const analysis = connectAnalysis(pipeline, store, findingStore, rules, undefined, alerts.onFindingsAdded);
 
 // Listeners must be registered synchronously so Chrome can wake the worker for them.
 collectorManager.attachAll();
@@ -60,7 +62,12 @@ async function snapshot(): Promise<StateSnapshot> {
  */
 async function handle(request: Request, sender: chrome.runtime.MessageSender): Promise<unknown> {
   if (sender.id !== chrome.runtime.id) throw new Error('Rejected: unknown sender');
-  const fromContentScript = sender.tab !== undefined;
+  // The activity page is one of our own extension pages opened in a tab, so it
+  // has `sender.tab` populated too. Distinguish by sender URL so privileged
+  // requests from `activity.html` are not misclassified as content scripts.
+  const extensionBase = chrome.runtime.getURL('');
+  const fromExtensionPage = sender.url?.startsWith(extensionBase) === true;
+  const fromContentScript = sender.tab !== undefined && !fromExtensionPage;
 
   if (request.type === 'ingest-event') {
     if (!fromContentScript) throw new Error('Rejected: ingest-event is for content scripts');
@@ -85,6 +92,7 @@ async function handle(request: Request, sender: chrome.runtime.MessageSender): P
       // Close the collector gate immediately after persistence succeeds; do
       // not leave a window open while content scripts are reconciled.
       collectorManager.setMonitoring(request.enabled);
+      if (!request.enabled) alerts.clearAll();
       await reconcile();
       return snapshot();
     }
@@ -101,6 +109,7 @@ async function handle(request: Request, sender: chrome.runtime.MessageSender): P
       // Pin/dismiss state is keyed by finding ID, so wiping the finding store
       // leaves orphaned ids. Clear those too; theme preference is kept.
       await clearFindingPreferences();
+      alerts.clearAll();
       return null;
     default:
       throw new Error(`Unknown request: ${(request as { type: string }).type}`);
@@ -121,6 +130,13 @@ chrome.runtime.onStartup.addListener(() => void reconcile());
 // Re-register content scripts whenever the user grants or revokes site access.
 chrome.permissions.onAdded.addListener(() => void reconcile());
 chrome.permissions.onRemoved.addListener(() => void reconcile());
+
+// A high-severity alert belongs to a specific tab. If the user navigates away
+// or closes the tab, drop the badge so it does not shadow the next page.
+chrome.tabs?.onUpdated?.addListener?.((tabId, changeInfo) => {
+  if (changeInfo.url !== undefined) alerts.clearForTab(tabId);
+});
+chrome.tabs?.onRemoved?.addListener?.((tabId) => alerts.clearForTab(tabId));
 
 // The monitoring switch is in-memory, so reload it each time the worker wakes up.
 void loadSettings().then((s) => collectorManager.setMonitoring(s.monitoringEnabled));

@@ -32,6 +32,7 @@ To load the extension, open `chrome://extensions`, enable Developer mode, choose
 | `scripting` | Required | Register isolated and MAIN-world scripts for permitted origins. |
 | `activeTab` | Required | Read the current page in the popup. |
 | `webRequest` | Optional | Observe browser request metadata; grant from the popup. |
+| `notifications` | Required | Show a native OS alert when the assessment reaches **Suspicious activity detected**, even if the popup is closed. |
 | `http://*/*`, `https://*/*` | Optional host permissions | User-controlled site access, requested per site or for all HTTP/HTTPS sites. |
 
 Monitoring is enabled by default, but BrowserTrust observes no site until host access is granted. The popup can grant or remove current-site access, allow all HTTP and HTTPS sites, pause monitoring, and grant `webRequest`. With only one site allowed, requests to other hosts may be invisible. Incomplete access or fewer than three observations including a network event is reported as **Insufficient evidence**.
@@ -55,7 +56,7 @@ Analysis runs locally after each validated event has been stored. Findings are p
 | Capability call followed by network | A supported capability call followed within 15 seconds by browser-observed network metadata in the same tab and page origin. Escalates to **high** when that request is a cross-origin POST. | medium / high | This is temporal association only; it does not prove causation or data transmission. The request body is not collected. |
 | Repeated cross-origin POST pattern | At least three browser-observed cross-origin POST requests to the same host in 60 seconds from the same tab and page origin. A sustained burst of six or more emits an additional **high**-severity finding. | medium / high | Repetition alone does not establish malicious intent or reveal request contents. |
 | Scripted form submission followed by network | A page-hook `form.submit()` call followed within 30 seconds by a browser-observed request from the same tab and page origin. | low | The submit was reported by a page-world hook that the page can forge or suppress; the request body is not collected. |
-| Hidden cross-origin iframe added | A newly added iframe whose destination is a different origin and whose attributes or inline style mark it hidden or zero-size. | medium | The hidden hint is attribute-only; computed CSS could still make the iframe visible. |
+| Hidden cross-origin iframe added | A newly added iframe whose destination is a different origin and whose attributes or inline style mark it hidden or zero-size. | low | Large sites use hidden cross-origin iframes for ads, analytics and embedded players, so this is informational only. |
 | Script injected dynamically from a different site | A `<script>` element added after the initial page scan whose destination is on a different registrable domain than the page. | low | Many legitimate integrations load scripts from other sites; the script source is not fetched or inspected. |
 
 These rules produce review findings, not a verdict that a website is safe or malicious. Ordinary external GET requests do not trigger the repeated-POST rule. No arbitrary risk score or confidence percentage is used. The analysis engine runs incrementally against prior stored events; errors are logged and do not reject an already-stored event. A high-severity finding promotes the assessment to **Suspicious activity detected**; medium and low findings produce **Review recommended**.
@@ -68,10 +69,16 @@ Assessment states:
 
 - **Insufficient evidence:** monitoring is off, site access or required permissions are missing, page scripts are not registered, or fewer than three observations including a network event exist for the active tab.
 - **No suspicious activity observed:** monitoring and coverage checks pass, sufficient activity exists, and no configured rule matched. This is not proof the site is safe.
-- **Review recommended:** one or more current findings matched a review rule.
+- **Review recommended:** at least one current finding carries medium severity AND the page's registrable domain is not on the built-in common-sites allowlist. Low-severity informational findings (hidden-iframe, dynamic-third-party-script, scripted-form, sensitive-capability-call) are always listed below the assessment but do not flip the overall state — they are common on legitimate large sites.
+
+The common-sites allowlist lives in [`src/analysis/known-hosts.ts`](src/analysis/known-hosts.ts) and is keyed by registrable domain (so `music.youtube.com`, `scholar.google.com`, etc. all match). For pages on that list, medium findings still render in the findings panel for transparency but do not promote the overall state to "Review recommended" — large legitimate sites routinely match medium rules (form↔network, capability↔network) during normal use. **High-severity findings still escalate to "Suspicious activity detected" even for allowlisted hosts** — the allowlist trusts the site's identity, not its every observed behavior.
 - **Suspicious activity detected:** at least one current finding carries high severity. Today this is reached by a capability call followed by a cross-origin POST, or by a sustained repeated cross-origin POST burst (six or more in a minute).
 
 All event-derived text is rendered with DOM text nodes/`textContent`. The popup does not display mock findings, fabricated charts, or a security score.
+
+### Background alerts
+
+When a **high-severity** finding is appended for a tab, BrowserTrust shows a native OS notification (via `chrome.notifications`, respects the user's system Do Not Disturb) titled with the finding and adds a red `!` badge on the extension icon for that tab. The notification stays on screen until acknowledged; clicking it opens the activity page for the triggering tab. Alerts fire only for `severity: 'high'` (so they match the "Suspicious activity detected" state), are de-duplicated by finding id for the lifetime of the service worker, and are cleared automatically when the tab navigates to a new URL, the tab closes, monitoring is turned off, or **Clear activity** is used. Low and medium findings never alert — they are reviewable in the popup but do not interrupt the user.
 
 Each finding card has small **Pin** and **Dismiss** controls. Pinned findings sort to the top of the list and gain an orange edge; dismissed findings are hidden and reachable through a "Show N dismissed" link at the bottom. State is persisted locally in `chrome.storage.local` as `bt.preferences` (pin/dismiss id lists are capped and sanitized on load), scoped per-browser-profile, and reset by **Clear activity**. The theme toggle in the top bar switches between the default dark theme and a light theme that reuses the same red/green/orange accent tokens; the choice is persisted in the same preference bundle and applied before each render.
 

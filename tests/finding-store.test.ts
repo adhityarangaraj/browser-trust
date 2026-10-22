@@ -21,10 +21,11 @@ function setup(max = 500) {
 }
 
 describe('FindingStore', () => {
-  it('persists findings and prevents duplicate IDs', async () => {
+  it('persists findings, prevents duplicate IDs, and returns only the net-new additions', async () => {
     const { store } = setup();
-    await store.appendMany([finding('a'), finding('b')]);
-    await store.appendMany([finding('a'), finding('c')]);
+    expect((await store.appendMany([finding('a'), finding('b')])).map((item) => item.id)).toEqual(['a', 'b']);
+    expect((await store.appendMany([finding('a'), finding('c')])).map((item) => item.id)).toEqual(['c']);
+    expect(await store.appendMany([finding('c')])).toEqual([]);
     expect((await store.list()).map((item) => item.id)).toEqual(['c', 'b', 'a']);
     expect(await store.count()).toBe(3);
   });

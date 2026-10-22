@@ -1,5 +1,6 @@
 import type { CollectorStatus } from '../collectors/types';
 import type { BrowserTrustEvent } from '../shared/types';
+import { isKnownCommonHost } from './known-hosts';
 import type { Finding } from './types';
 
 const MIN_EVENTS_FOR_ASSESSMENT = 3;
@@ -21,6 +22,8 @@ export interface Assessment {
 
 export interface AssessmentContext {
   origin?: string;
+  /** Hostname of the active page, used to check the built-in common-site allowlist. */
+  host?: string;
   tabId?: number;
   monitoringEnabled: boolean;
   siteAccessGranted: boolean;
@@ -69,10 +72,24 @@ export function assessSite(
   }
 
   if (siteFindings.some((finding) => finding.severity === 'high')) {
+    // High-severity still escalates even for allowlisted common hosts.
     return result('suspicious-activity-detected', 'One or more high-severity rules matched observed evidence. Review the supporting events and limitations.', siteEvents, siteFindings);
   }
+  const allowlisted = isKnownCommonHost(context.host);
+  const mediumCount = siteFindings.filter((finding) => finding.severity === 'medium').length;
+  // "Review recommended" is reserved for medium+ findings on sites not on the
+  // built-in common-sites allowlist. Low findings are informational and never
+  // flip the state; medium findings on allowlisted hosts are shown below for
+  // transparency but also do not flip the state (large legitimate sites match
+  // medium rules in the course of normal use).
+  if (mediumCount > 0 && !allowlisted) {
+    return result('review-recommended', 'Some observed behavior matched a medium-severity review rule. The findings describe evidence and do not prove malicious intent.', siteEvents, siteFindings);
+  }
   if (siteFindings.length > 0) {
-    return result('review-recommended', 'Some observed behavior matched a review rule. The findings describe evidence and do not prove malicious intent.', siteEvents, siteFindings);
+    const explanation = allowlisted && mediumCount > 0
+      ? `This site is on BrowserTrust's built-in list of well-known common websites, so ${mediumCount} medium-severity finding${mediumCount === 1 ? '' : 's'} ${mediumCount === 1 ? 'is' : 'are'} listed below for transparency without flipping the assessment. High-severity findings would still promote the state.`
+      : `Monitoring is active and activity was observed. ${siteFindings.length} low-severity informational finding${siteFindings.length === 1 ? '' : 's'} ${siteFindings.length === 1 ? 'is' : 'are'} listed below but did not match a review rule. This is not proof that the site is safe.`;
+    return result('no-suspicious-activity-observed', explanation, siteEvents, siteFindings);
   }
   return result('no-suspicious-activity-observed', 'Monitoring is active and activity was observed, but no configured rule matched. This is not proof that the site is safe.', siteEvents, siteFindings);
 }

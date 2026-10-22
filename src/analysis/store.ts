@@ -10,7 +10,8 @@ export class FindingStore {
 
   constructor(private readonly adapter: StorageAdapter, private readonly maxFindings = MAX_FINDINGS) {}
 
-  appendMany(findings: readonly Finding[]): Promise<void> {
+  /** Returns the subset of `findings` that were actually appended (not duplicates). */
+  appendMany(findings: readonly Finding[]): Promise<Finding[]> {
     return this.enqueue(async () => {
       const stored = await this.read();
       const ids = new Set(stored.map((finding) => finding.id));
@@ -19,8 +20,9 @@ export class FindingStore {
         ids.add(finding.id);
         return true;
       });
-      if (additions.length === 0) return;
+      if (additions.length === 0) return [];
       await this.adapter.set(FINDINGS_KEY, [...stored, ...additions].slice(-this.maxFindings));
+      return additions;
     });
   }
 

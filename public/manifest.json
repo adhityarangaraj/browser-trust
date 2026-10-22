@@ -22,7 +22,7 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "permissions": ["storage", "scripting", "activeTab"],
+  "permissions": ["storage", "scripting", "activeTab", "notifications"],
   "optional_permissions": ["webRequest"],
   "optional_host_permissions": ["http://*/*", "https://*/*"]
 }

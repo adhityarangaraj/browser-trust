@@ -466,6 +466,7 @@ async function refresh(): Promise<void> {
     const siteAccessGranted = renderCoverage(state, tab.url);
     const assessment = assessSite(events, findings, {
       origin: site.ok ? site.origin : undefined,
+      host: site.ok ? site.host : undefined,
       tabId: tab.id,
       monitoringEnabled: state.settings.monitoringEnabled,
       siteAccessGranted,
