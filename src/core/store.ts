@@ -25,6 +25,11 @@ export class EventStore {
   private queue: Promise<unknown> = Promise.resolve();
   private pending: BrowserTrustEvent[] = [];
   private scheduledFlush: Promise<void> | undefined;
+  /**
+   * Bumped on every clear. Analysis uses it to drop writes whose source events
+   * were wiped between the time analysis started and the time it tries to persist.
+   */
+  private generation = 0;
 
   constructor(
     private readonly adapter: StorageAdapter,
@@ -57,7 +62,14 @@ export class EventStore {
   }
 
   clear(): Promise<void> {
+    this.generation += 1;
+    this.pending.length = 0;
     return this.enqueue(() => this.adapter.set(EVENTS_KEY, []));
+  }
+
+  /** Opaque counter that changes whenever the store is cleared. */
+  getGeneration(): number {
+    return this.generation;
   }
 
   private async read(): Promise<BrowserTrustEvent[]> {

@@ -25,7 +25,7 @@ const collectorManager = new CollectorManager(collectors, async (event) => {
   await pipeline.emit(event);
 });
 
-connectAnalysis(pipeline, store, findingStore, rules);
+const analysis = connectAnalysis(pipeline, store, findingStore, rules);
 
 // Listeners must be registered synchronously so Chrome can wake the worker for them.
 collectorManager.attachAll();
@@ -92,7 +92,10 @@ async function handle(request: Request, sender: chrome.runtime.MessageSender): P
     case 'list-findings':
       return findingStore.list(request.limit);
     case 'clear-events':
+      // Bump the store generation first so any analysis task already queued
+      // for an in-flight event drops its finding write instead of resurrecting it.
       await store.clear();
+      await analysis.drain();
       await findingStore.clear();
       return null;
     default:

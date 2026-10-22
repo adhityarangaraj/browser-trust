@@ -39,9 +39,16 @@ export class EventPipeline {
   async emit(input: NewEvent): Promise<BrowserTrustEvent> {
     const event = createEvent(input, this.deps);
     await this.store.append(event);
+    // Listeners are notified without awaiting them so a slow subscriber
+    // (e.g. the analysis queue) never back-pressures ingestion.
     for (const listener of this.listeners) {
       try {
-        await listener(event);
+        const result = listener(event);
+        if (result && typeof (result as Promise<unknown>).then === 'function') {
+          (result as Promise<unknown>).catch((error) =>
+            console.error('BrowserTrust: event listener failed', error),
+          );
+        }
       } catch (error) {
         console.error('BrowserTrust: event listener failed', error);
       }
