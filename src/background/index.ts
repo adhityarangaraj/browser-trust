@@ -63,7 +63,12 @@ async function snapshot(): Promise<StateSnapshot> {
  */
 async function handle(request: Request, sender: chrome.runtime.MessageSender): Promise<unknown> {
   if (sender.id !== chrome.runtime.id) throw new Error('Rejected: unknown sender');
-  const fromContentScript = sender.tab !== undefined;
+  // An extension page opened in a browser tab also has `sender.tab`. Identify
+  // privileged extension contexts by their extension URL before treating a
+  // tab-backed message as coming from an untrusted site content script.
+  const extensionUrl = chrome.runtime.getURL('');
+  const fromExtensionPage = typeof sender.url === 'string' && sender.url.startsWith(extensionUrl);
+  const fromContentScript = sender.tab !== undefined && !fromExtensionPage;
 
   if (request.type === 'ingest-event') {
     if (!fromContentScript) throw new Error('Rejected: ingest-event is for content scripts');
