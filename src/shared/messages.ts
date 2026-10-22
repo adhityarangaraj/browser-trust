@@ -2,6 +2,7 @@ import type { Settings } from '../config/settings';
 import type { CollectorStatus } from '../collectors/types';
 import type { BrowserTrustEvent } from './types';
 import type { Finding } from '../analysis/types';
+import type { ActivityTimeSnapshot } from '../core/activity-time';
 
 export interface StateSnapshot {
   settings: Settings;
@@ -26,6 +27,13 @@ export interface MessageMap {
   };
   'list-findings': { request: { type: 'list-findings'; limit?: number }; response: Finding[] };
   'clear-events': { request: { type: 'clear-events' }; response: null };
+  /** Dashboard-only local active-time controls and summary. */
+  'get-activity-time': { request: { type: 'get-activity-time' }; response: ActivityTimeSnapshot };
+  'set-activity-time-tracking': {
+    request: { type: 'set-activity-time-tracking'; enabled: boolean };
+    response: ActivityTimeSnapshot;
+  };
+  'clear-activity-time': { request: { type: 'clear-activity-time' }; response: ActivityTimeSnapshot };
   /** Content scripts only. The event is untrusted and is validated in the background. */
   'ingest-event': { request: { type: 'ingest-event'; event: unknown }; response: null };
 }

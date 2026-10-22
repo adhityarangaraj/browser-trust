@@ -1,13 +1,14 @@
-# Progress
+﻿# Progress
 
-## Dashboard foundation and UI refinement (Phase 1)
+## Dashboard foundation and Sites & Activity integration (Phases 1 and 2)
 
 - Added a separate React dashboard extension page with responsive sidebar navigation and views for Overview, Sites & Activity, Permissions, Web Recall, Follow-up Tracker, Context Keeper, and Trust Monitor. Screen time is consolidated into Sites & Activity; no separate Screen time destination remains.
 - Refined the light SaaS interface around a centralized crimson/neutral/semantic palette, locally bundled Inter, Lucide outline icons, compact navigation, readable data table, responsive layouts, focus states, and reduced-motion support.
-- Sites & Activity contains clearly labelled illustrative sample visits, sorting, period controls, and a sample activity visualization. No history or time tracking is implemented; active browsing time is explicitly marked as not measured.
-- Integrated React/React DOM, Lucide, local Inter assets, and TSX into the existing esbuild build; dashboard HTML, JavaScript, CSS, and font files are copied/verified in `dist/`. No manifest permissions, popup wiring, activity-page behavior, storage, monitoring, or backend behavior changed.
+- Sites & Activity uses opt-in Chrome History data, local calendar ranges, hostname grouping, visit/latest-visit sorting, and daily visit counts. It also offers separate opt-in active browsing-time tracking, estimated only for an active HTTP(S) tab in the focused window while Chrome reports the user active; hostname/day records are bounded to 30 days and locally stored.
+- Added only optional `history`, `tabs`, `idle`, and `alarms` permissions. Permission prompts are user initiated. No backend or history transmission was added; existing popup, activity page, collectors, event pipeline, and monitoring behavior are unchanged.
+- Dashboard styles use a centralized theme imported through its TSX entry; `verify-dist` checks generated dashboard CSS and JS.
 - The dashboard can be opened directly at `chrome-extension://<installed-extension-id>/dashboard.html` after loading `dist/`. Manual Chrome verification is pending.
-- Validation (2026-10-22): `npm run check` passed — typecheck, 116 Vitest tests, 9/9 testbed server tests, production build, and `verify-dist`. Dashboard rendering and direct extension-URL access still need manual Chrome verification.
+- Phase 2 validation has not been run at the user request. Run `npm run check` before release. Manual Chrome verification remains needed for permission prompts, history ranges, tracking transitions, retention/clear behavior, worker/browser lifecycle, and direct extension URL access.
 
 ## Phase 3 implementation checkpoint
 

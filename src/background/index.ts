@@ -14,6 +14,7 @@ import {
 } from '../config/access';
 import { clearFindingPreferences } from '../config/preferences';
 import { loadSettings, saveSettings } from '../config/settings';
+import { ActiveTimeTracker } from './activity-time-tracker';
 import { EventPipeline } from '../core/pipeline';
 import { chromeStorageAdapter, EventStore } from '../core/store';
 import type { Request, StateSnapshot } from '../shared/messages';
@@ -27,9 +28,11 @@ const collectorManager = new CollectorManager(collectors, async (event) => {
 });
 
 const analysis = connectAnalysis(pipeline, store, findingStore, rules);
+const activeTimeTracker = new ActiveTimeTracker();
 
 // Listeners must be registered synchronously so Chrome can wake the worker for them.
 collectorManager.attachAll();
+activeTimeTracker.attach();
 
 async function reconcile(): Promise<void> {
   const settings = await loadSettings();
@@ -102,6 +105,13 @@ async function handle(request: Request, sender: chrome.runtime.MessageSender): P
       // leaves orphaned ids. Clear those too; theme preference is kept.
       await clearFindingPreferences();
       return null;
+    case 'get-activity-time':
+      return activeTimeTracker.getSnapshot();
+    case 'set-activity-time-tracking':
+      if (typeof request.enabled !== 'boolean') throw new Error('enabled must be a boolean');
+      return activeTimeTracker.setEnabled(request.enabled);
+    case 'clear-activity-time':
+      return activeTimeTracker.clearRecords();
     default:
       throw new Error(`Unknown request: ${(request as { type: string }).type}`);
   }

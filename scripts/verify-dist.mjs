@@ -55,6 +55,9 @@ if (!errors.length) {
       if (!manifest.icons?.[size]) errors.push(`manifest.icons.${size} missing`);
     }
     if (!manifest.action?.default_popup) errors.push('action.default_popup missing');
+    const dashboardHtml = readFileSync(join(dist, 'dashboard.html'), 'utf8');
+    if (!dashboardHtml.includes('href="dashboard.css"')) errors.push('dashboard.html does not link dashboard.css');
+    if (!dashboardHtml.includes('src="dashboard.js"')) errors.push('dashboard.html does not load dashboard.js');
   } catch (error) {
     errors.push(`manifest.json unreadable: ${error instanceof Error ? error.message : String(error)}`);
   }

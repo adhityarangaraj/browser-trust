@@ -23,6 +23,6 @@
     "type": "module"
   },
   "permissions": ["storage", "scripting", "activeTab"],
-  "optional_permissions": ["webRequest"],
+  "optional_permissions": ["webRequest", "history", "tabs", "idle", "alarms"],
   "optional_host_permissions": ["http://*/*", "https://*/*"]
 }

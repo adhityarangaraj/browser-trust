@@ -42,7 +42,6 @@ async function copyStatic() {
   await cp('src/popup/activity.html', `${outdir}/activity.html`);
   await cp('src/popup/popup.css', `${outdir}/popup.css`);
   await cp('src/dashboard/dashboard.html', `${outdir}/dashboard.html`);
-  await cp('src/dashboard/dashboard.css', `${outdir}/dashboard.css`);
   const interFiles = [
     'inter-latin-400-normal.woff2',
     'inter-latin-500-normal.woff2',

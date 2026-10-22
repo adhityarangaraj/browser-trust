@@ -1,4 +1,4 @@
-# AGENTS.md
+﻿# AGENTS.md
 
 Guidance for AI agents and contributors working on BrowserTrust.
 
@@ -22,6 +22,8 @@ Phase 3 adds deterministic local analysis, persisted evidence-backed findings, d
 | Deterministic rules, findings, assessment | `src/analysis/` | service worker/popup pure logic |
 | Settings and site access | `src/config/` | extension contexts |
 | UI | `src/popup/`, `src/dashboard/` | popup/activity pages and React dashboard extension page |
+| Dashboard history summaries | `src/dashboard/history.ts` | dashboard extension page, History API |
+| Estimated active-time tracking | `src/background/activity-time-tracker.ts`, `src/core/activity-time.ts` | service worker; bounded `chrome.storage.local` aggregates |
 | Schema and messages | `src/shared/` | shared |
 | Local test fixture | `testbed/` | standalone Node process/browser page; never imported by extension |
 
