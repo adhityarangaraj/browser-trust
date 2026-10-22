@@ -29,7 +29,7 @@ The repository uses:
 - Chrome Extension Manifest V3.
 - esbuild through `scripts/build.mjs`; build output is `dist/`.
 - Vitest for automated tests.
-- Plain HTML/CSS/TypeScript for the popup and activity page; a separate React/TypeScript dashboard includes opt-in local History summaries and estimated active-time tracking in Sites & Activity, with other feature views remaining placeholders.
+- Plain HTML/CSS/TypeScript for the popup and activity page; a separate React/TypeScript dashboard includes opt-in local History summaries and estimated active-time tracking in Sites & Activity, plus an optional site-permission manager. Web Recall, Follow-up Tracker, Context Keeper, and Trust Monitor remain placeholders.
 - `chrome.storage.local` for bounded local event storage.
 - A local Node.js testbed and collector.
 
@@ -60,7 +60,8 @@ Reuse the existing code. Do not recreate the project or add a second event pipel
 - `src/core/`: event validation, normalization, ingestion pipeline, and bounded local storage.
 - `src/analysis/`: deterministic rule engine, findings, evidence links, assessment logic.
 - `src/popup/`: extension UI and views.
-- `src/dashboard/`: separate React dashboard page and local History summary UI/query; other planned views remain placeholders.
+- `src/dashboard/`: separate React dashboard page, local History summary/query, and optional site-permission review; other planned views remain placeholders.
+- `src/dashboard/permissions.ts` and `permission-manager.tsx`: optional, user-initiated site-settings review and a bounded local log of actions made by BrowserTrust.
 - `src/background/activity-time-tracker.ts`, `src/core/activity-time.ts`: opt-in, event-driven active-time estimates and bounded local aggregates.
 - `public/manifest.json`: Manifest V3 configuration.
 - `scripts/build.mjs`: build and static asset copying.
@@ -239,6 +240,10 @@ Run typecheck, tests, and production build. Do not claim Chrome behavior has bee
 - Tests cover rules and assessment logic.
 - README, AGENTS, and PROGRESS match actual functionality and verified results.
 - No AI, remote service, database, or unrelated architecture rewrite is introduced.
+
+### 6.7 Optional browser permission manager surface
+
+The standalone dashboard provides a user-initiated manager for effective Chrome content settings. It requests optional `history` and `contentSettings` only from explicit user actions, uses a bounded recent-history hostname list, and describes the results as effective settings rather than a complete list of per-site grants. A confirmed block adds an extension-owned site rule. Do not clear all extension-owned content-setting rules to simulate a targeted reset; direct users to Chrome site settings for individual reset. Device-grant inventories that Chrome does not expose remain explicitly unsupported. The local audit trail records BrowserTrust-initiated actions only and is bounded/retained locally.
 
 ## 7. Phase 3 must be demo-ready
 

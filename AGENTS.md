@@ -27,7 +27,9 @@ Phase 3 adds deterministic local analysis, persisted evidence-backed findings, d
 | Schema and messages | `src/shared/` | shared |
 | Local test fixture | `testbed/` | standalone Node process/browser page; never imported by extension |
 
-Entry points are bundled by `scripts/build.mjs`: `src/background/index.ts` to `background.js` (ESM), `src/content/index.ts` to `content.js` (IIFE), `src/page-hooks/index.ts` to `page-hook.js` (IIFE), `src/popup/popup.ts` to `popup.js` (IIFE), and `src/dashboard/dashboard.tsx` to `dashboard.js` (React IIFE). Static extension files and locally bundled Inter font assets are copied into `dist/`. The dashboard does not yet access browser data.
+Entry points are bundled by `scripts/build.mjs`: `src/background/index.ts` to `background.js` (ESM), `src/content/index.ts` to `content.js` (IIFE), `src/page-hooks/index.ts` to `page-hook.js` (IIFE), `src/popup/popup.ts` to `popup.js` (IIFE), and `src/dashboard/dashboard.tsx` to `dashboard.js` (React IIFE). Static extension files and locally bundled Inter font assets are copied into `dist/`. Sites & Activity and Permissions use optional local History/content-settings APIs after user action.
+
+The dashboard's optional `history` and `contentSettings` APIs are user-initiated and separate from the event pipeline. Effective settings do not reveal whether Chrome uses a per-site exception or a broader default.
 
 **All events go through `EventPipeline`** (`emit` for collectors, `ingestFromContent` for content scripts). No other module writes events to storage.
 
@@ -53,6 +55,7 @@ Entry points are bundled by `scripts/build.mjs`: `src/background/index.ts` to `b
 - Content/page messages are untrusted. A content script may only send `ingest-event`; the background derives source from `sender` and ignores any claimed source. Reject privileged messages (`get-state`, `set-monitoring`, `list-events`, `clear-events`) from tabs.
 - Render event data with `textContent` or DOM APIs, never `innerHTML`.
 - Never hardcode a product hostname. Site access comes only from user-granted optional host permissions. The local testbed hostname may appear only in `testbed/` and its documentation.
+- Dashboard permission inventory uses optional `history` and `contentSettings` only after a user action. Report content-setting values as effective values; do not imply they identify individual site exceptions. Do not claim visibility into other sites' USB, Serial, HID, or Bluetooth device grants.
 - Do not add third-party network calls to the extension. Any future AI analysis must be optional/off by default and receive only normalized/minimized events.
 - Document any new permission in the README table.
 

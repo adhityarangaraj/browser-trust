@@ -2,7 +2,7 @@
 
 BrowserTrust is a standalone Chrome Manifest V3 extension that records selected website activity, tracks observed network destinations, and presents deterministic evidence-backed findings locally. The local test site is only a fixture; extension code does not import or depend on it.
 
-**Status: Phase 3 implementation with Phase 2 Sites & Activity dashboard integration.** The event pipeline, deterministic analysis, local findings store, destination summary, assessment-first popup, and View Activity page are implemented. The React dashboard reads opt-in local Chrome History data and offers independently opt-in estimated active browsing time. Other dashboard views remain placeholders. Browser behavior and permission flows still need manual Chrome verification; see [Verification](#verification).
+**Status: Phase 3 implementation with Sites & Activity and an advanced Permissions dashboard.** The event pipeline, deterministic analysis, local findings store, destination summary, assessment-first popup, View Activity page, local History summaries, estimated active browsing time, and the opt-in permission manager are implemented. Web Recall, Follow-up Tracker, Context Keeper, and Trust Monitor remain placeholders. Browser behavior and permission flows still need manual Chrome verification; see [Verification](#verification).
 
 ## Requirements and commands
 
@@ -25,7 +25,7 @@ npm run format:check  # Prettier check
 
 To load the extension, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select the generated `dist/` directory. After each build, reload the extension from that page.
 
-The standalone dashboard page is at `chrome-extension://<installed-extension-id>/dashboard.html` after loading `dist/`. Sites & Activity requests History access only after an explicit action. Active-time tracking is a separate opt-in. Other dashboard views remain placeholders, and Trust Monitor data is not connected.
+The standalone dashboard page is at `chrome-extension://<installed-extension-id>/dashboard.html` after loading `dist/`. Sites & Activity and Permissions request their optional access only after an explicit action. Other planned dashboard views remain placeholders, and Trust Monitor data is not connected.
 
 ## Permissions and coverage
 
@@ -37,11 +37,14 @@ The standalone dashboard page is at `chrome-extension://<installed-extension-id>
 | `webRequest` | Optional | Observe browser request metadata; grant from the popup. |
 | `history` | Optional | Read local visit records for the dashboard after explicit user approval; URLs are processed in memory and not transmitted. |
 | `tabs`, `idle`, `alarms` | Optional | Required only for opt-in active browsing-time estimates: identify active tab hostname, detect idle state, and checkpoint once per minute. |
+| `contentSettings` | Optional | Requested from Permissions when the user enables settings review. Reads effective per-site content settings and can add a BrowserTrust-owned restrictive site rule after explicit confirmation. |
 | `http://*/*`, `https://*/*` | Optional host permissions | User-controlled site access, requested per site or for all HTTP/HTTPS sites. |
 
 Monitoring is enabled by default, but BrowserTrust observes no site until host access is granted. The popup can grant or remove current-site access, allow all HTTP and HTTPS sites, pause monitoring, and grant `webRequest`. With only one site allowed, requests to other hosts may be invisible. Incomplete access or fewer than three observations including a network event is reported as **Insufficient evidence**.
 
 History summaries query up to 3,000 history items and count matching local top-level visit records in the selected local calendar range. Chrome returns visits per URL, which are filtered to the range before aggregation; a reached item cap or per-URL API failures can make results incomplete. Active time counts eligible intervals only while an HTTP(S) tab is active in the focused Chrome window and Chrome reports the user active. It is a foreground-time estimate, not attention measurement. Minute checkpoints and long worker/browser interruptions can undercount. Only local-day and hostname aggregates are stored, bounded to 30 days and 2,000 records. Current tab URLs are transiently read only to derive the hostname and are not stored by this feature. Tracking is separate from monitoring and can be paused or cleared in the dashboard.
+
+The Permissions dashboard discovers up to 100 hostnames from the last 30 days of local History results (maximum 3,000 history items), then queries effective Chrome content settings when `contentSettings` is granted. This is not a complete inventory of site grants. Chrome's API does not identify whether an effective value came from a site exception or a broader default. Blocking adds an extension-owned site rule after confirmation; resetting individual rules is done in Chrome site settings because Chrome's `contentSettings.clear()` clears all rules created by this extension. USB, Serial, HID, and Bluetooth site-grant inventories are not exposed to this manager. Its local action log records only BrowserTrust manager actions, retains at most 100 entries for 90 days, and cannot reconstruct earlier Chrome changes. See [Chrome's contentSettings API](https://developer.chrome.com/docs/extensions/reference/api/contentSettings) for API scope and limitations.
 
 ## What BrowserTrust observes
 

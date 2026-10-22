@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import './theme.css';
 import './dashboard.css';
+import './permission-manager.css';
 import { ACTIVE_TIME_TRACKING_PERMISSIONS } from '../background/activity-time-tracker';
 import {
   localDayKey,
@@ -32,6 +33,7 @@ import {
 } from '../core/activity-time';
 import { sendRequest } from '../shared/messages';
 import { getHistoryRange, querySiteHistory, type HistoryActivityResult, type HistoryPeriod } from './history';
+import { PermissionManager } from './permission-manager';
 
 type ViewId = 'overview' | 'sites' | 'permissions' | 'recall' | 'followups' | 'spaces' | 'trust';
 type SortKey = 'visits' | 'lastVisitTime' | 'host' | 'activeMs';
@@ -65,7 +67,7 @@ const headings: Record<ViewId, { title: string; description: string }> = {
   },
   permissions: {
     title: 'Permissions',
-    description: 'Review website access with clear, understandable controls.',
+    description: 'Inspect supported Chrome site settings and understand where Chrome keeps the rest.',
   },
   recall: {
     title: 'Web Recall',
@@ -198,13 +200,15 @@ function App() {
             <Overview onNavigate={navigate} />
           ) : activeView === 'sites' ? (
             <SitesActivity />
+          ) : activeView === 'permissions' ? (
+            <PermissionManager />
           ) : (
             <FeaturePlaceholder view={activeView} onNavigate={navigate} />
           )}
           <footer className="page-footer">
             <span>BrowserTrust dashboard</span>
             <span>
-              <span className="status-dot" /> {activeView === 'sites' ? 'History and time summaries stay on this device' : 'This view is a placeholder'}
+              <span className="status-dot" /> {activeView === 'sites' || activeView === 'permissions' ? 'Data and permission reviews stay on this device' : 'This view is a placeholder'}
             </span>
           </footer>
         </div>
@@ -277,8 +281,9 @@ function Overview({ onNavigate }: { onNavigate: (view: ViewId) => void }) {
         <div>
           <strong>A foundation for your browser companion</strong>
           <p>
-            Sites & Activity includes local history summaries and optional active-time estimates. Permissions,
-            reminders, saved workspaces, and Trust Monitor integrations are still planned.
+            Sites & Activity includes local history summaries and optional active-time estimates. The Permissions
+            manager reviews recent sites and supported Chrome settings; reminders, saved workspaces, and Trust
+            Monitor integrations remain planned.
           </p>
         </div>
       </section>
@@ -659,24 +664,13 @@ function FeaturePlaceholder({
   view,
   onNavigate,
 }: {
-  view: Exclude<ViewId, 'overview' | 'sites'>;
+  view: Exclude<ViewId, 'overview' | 'sites' | 'permissions'>;
   onNavigate: (view: ViewId) => void;
 }) {
   const feature: Record<
     typeof view,
     { icon: LucideIcon; title: string; description: string; rows: string[] }
   > = {
-    permissions: {
-      icon: ShieldCheck,
-      title: 'Website permissions, made easier to review.',
-      description:
-        'A place to understand and manage supported site access when permission controls are implemented.',
-      rows: [
-        'Review supported permission states',
-        'Make changes with clear explanations',
-        'See what Chrome does and does not expose',
-      ],
-    },
     recall: {
       icon: Search,
       title: 'Find your way back to useful pages.',

@@ -1,11 +1,18 @@
 ﻿# Progress
 
+## Advanced Permissions dashboard surface
+
+- Added an opt-in Permissions manager to the existing React dashboard. It discovers a bounded set of hostnames from up to 30 days of local Chrome History, queries Chrome's effective content settings, and offers filters, sorting, per-site inspection, and confirmed blocking for supported settings.
+- Added optional `contentSettings` permission only. USB, Serial, HID, and Bluetooth device-grant inventories are labelled unsupported; BrowserTrust does not claim to enumerate those grants.
+- BrowserTrust-created block actions are re-read for confirmation and logged locally (maximum 100 entries, 90-day retention). Chrome does not expose whether an effective setting is a site exception or a broader default; individual exception reset remains in Chrome settings.
+- Focused permission API tests were added but not run at the user's request. No build, typecheck, or broad test command was run for this implementation. Manual Chrome verification remains required for optional permission prompts, effective setting reads, confirmed blocks, and direct Chrome settings navigation.
+
 ## Dashboard foundation and Sites & Activity integration (Phases 1 and 2)
 
 - Added a separate React dashboard extension page with responsive sidebar navigation and views for Overview, Sites & Activity, Permissions, Web Recall, Follow-up Tracker, Context Keeper, and Trust Monitor. Screen time is consolidated into Sites & Activity; no separate Screen time destination remains.
 - Refined the light SaaS interface around a centralized crimson/neutral/semantic palette, locally bundled Inter, Lucide outline icons, compact navigation, readable data table, responsive layouts, focus states, and reduced-motion support.
 - Sites & Activity uses opt-in Chrome History data, local calendar ranges, hostname grouping, visit/latest-visit sorting, and daily visit counts. It also offers separate opt-in active browsing-time tracking, estimated only for an active HTTP(S) tab in the focused window while Chrome reports the user active; hostname/day records are bounded to 30 days and locally stored.
-- Added only optional `history`, `tabs`, `idle`, and `alarms` permissions. Permission prompts are user initiated. No backend or history transmission was added; existing popup, activity page, collectors, event pipeline, and monitoring behavior are unchanged.
+- Phase 2 added optional `history`, `tabs`, `idle`, and `alarms` permissions. Permission prompts are user initiated. No backend or history transmission was added; existing popup, activity page, collectors, event pipeline, and monitoring behavior are unchanged.
 - Dashboard styles use a centralized theme imported through its TSX entry; `verify-dist` checks generated dashboard CSS and JS.
 - The dashboard can be opened directly at `chrome-extension://<installed-extension-id>/dashboard.html` after loading `dist/`. Manual Chrome verification is pending.
 - Phase 2 validation has not been run at the user request. Run `npm run check` before release. Manual Chrome verification remains needed for permission prompts, history ranges, tracking transitions, retention/clear behavior, worker/browser lifecycle, and direct extension URL access.
