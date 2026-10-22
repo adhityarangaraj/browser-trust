@@ -1,5 +1,12 @@
 ﻿# Progress
 
+## Phase 6 — Follow-up Tracker CRUD
+
+- Added a React Follow-up Tracker page with manual create, edit, complete/reopen, confirmed delete, search, status/category/priority/due-group filters, sorting, and summary counts derived from stored items.
+- Added `src/dashboard/follow-up-store.ts` for schema validation, stable IDs, local `bt.followUps` persistence, 500-record / 2 MiB bounds, URL minimization, malformed-record cleanup, and local-calendar due states (overdue; due soon today through +7 days; upcoming; no date; completed).
+- Added accessible form labels and inline field validation, local HTTP(S) links that open only after a deliberate click, responsive scoped styling, and focused model/store tests.
+- No permission, backend, history/page scanning, popup changes, notifications, or scheduler added. Per the Phase 6 request, tests, typecheck, build, and `npm run check` were not run. Manual verification remains required.
+
 ## Phase 5 — Trust Monitor dashboard integration
 
 - Connected the existing Trust Monitor sidebar destination to a React experience with security overview, findings, activity/report, and site detail views. It reads state, the retained 1,000-event ring buffer, and the retained 500-finding store through existing background messages.

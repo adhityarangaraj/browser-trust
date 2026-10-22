@@ -1,0 +1,91 @@
+.followup-tracker { display: grid; gap: 17px; min-width: 0; }
+.followup-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.followup-toolbar>p { margin: 0; color: var(--text-secondary); font-size: 13px; }
+.followup-toolbar-actions { display: flex; flex: none; gap: 8px; }
+.followup-toolbar-actions button, .followup-empty-state button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+.followup-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.followup-summary-card { display: flex; align-items: center; gap: 11px; min-height: 74px; padding: 13px 14px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
+.followup-summary-icon { display: grid; width: 34px; height: 34px; flex: none; place-items: center; border-radius: var(--radius-sm); background: var(--surface-subtle); color: var(--text-secondary); }
+.followup-summary-card.tone-danger .followup-summary-icon { background: var(--brand-soft); color: var(--danger); }
+.followup-summary-card.tone-warning .followup-summary-icon { background: var(--amber-soft); color: var(--amber); }
+.followup-summary-card.tone-success .followup-summary-icon { background: var(--green-soft); color: var(--green); }
+.followup-summary-card>div { display: grid; gap: 2px; }
+.followup-summary-card>div>span { color: var(--text-secondary); font-size: 11px; }
+.followup-summary-card strong { color: var(--text); font-size: 22px; line-height: 1.15; }
+.followup-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
+.followup-search { display: flex; flex: 1 1 230px; align-items: center; gap: 8px; min-height: 36px; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); color: var(--text-secondary); }
+.followup-search:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.followup-search input { width: 100%; border: 0; outline: 0; background: transparent; color: var(--text); font: inherit; font-size: 12px; }
+.followup-select { display: grid; gap: 3px; }
+.followup-select>span { color: var(--text-secondary); font-size: 10px; font-weight: 600; }
+.followup-select select { min-width: 125px; height: 36px; padding: 0 26px 0 9px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font: inherit; font-size: 12px; }
+.followup-results { margin: -4px 0 -8px; color: var(--text-secondary); font-size: 12px; }
+.followup-results strong { color: var(--text); }
+.followup-table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
+.followup-table { width: 100%; min-width: 740px; border-collapse: collapse; text-align: left; }
+.followup-table th { padding: 10px 12px; border-bottom: 1px solid var(--border); background: var(--surface-subtle); color: var(--text-secondary); font-size: 10px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.followup-table td { padding: 12px; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 12px; vertical-align: top; }
+.followup-table tbody tr:last-child td { border-bottom: 0; }
+.followup-table th:first-child { width: 48%; }
+.followup-title { color: var(--text); font-size: 13px; font-weight: 650; overflow-wrap: anywhere; }
+.followup-description { max-width: 520px; margin: 4px 0; color: var(--text-secondary); font-size: 11px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.followup-row-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; color: var(--text-secondary); font-size: 10px; }
+.followup-row-meta a { display: inline-flex; align-items: center; gap: 4px; color: var(--brand); text-decoration: none; overflow-wrap: anywhere; }
+.followup-row-meta a:hover { text-decoration: underline; }
+.followup-table td:nth-child(2) time, .followup-table td:nth-child(2) small { display: block; margin-top: 4px; color: var(--text-secondary); font-size: 11px; white-space: nowrap; }
+.followup-due-label, .followup-priority, .followup-status { display: inline-flex; align-items: center; min-height: 21px; padding: 2px 7px; border-radius: 4px; background: var(--surface-subtle); color: var(--text-secondary); font-size: 10px; font-weight: 650; white-space: nowrap; }
+.followup-due-label.due-overdue { background: var(--brand-soft); color: var(--danger); }
+.followup-due-label.due-due-soon { background: var(--amber-soft); color: var(--amber); }
+.followup-due-label.due-upcoming { background: var(--surface-subtle); color: var(--text-secondary); }
+.followup-due-label.due-completed, .followup-status.status-completed { background: var(--green-soft); color: var(--green); }
+.followup-priority.priority-high { background: var(--brand-soft); color: var(--danger); }
+.followup-priority.priority-medium { background: var(--amber-soft); color: var(--amber); }
+.followup-priority.priority-low { background: var(--surface-subtle); color: var(--text-secondary); }
+.followup-status.status-pending { background: var(--surface-subtle); color: var(--text-secondary); }
+.followup-row-completed .followup-title { color: var(--text-secondary); text-decoration: line-through; text-decoration-color: var(--border-strong); }
+.followup-row-actions { display: flex; justify-content: flex-end; gap: 4px; }
+.followup-icon-button { display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); cursor: pointer; }
+.followup-icon-button:hover:not(:disabled) { border-color: var(--border); background: var(--surface-subtle); color: var(--text); }
+.followup-icon-button.is-danger:hover:not(:disabled) { border-color: var(--brand-border); background: var(--brand-soft); color: var(--danger); }
+.followup-icon-button:disabled { opacity: .5; cursor: wait; }
+.followup-empty, .followup-empty-state { display: grid; justify-items: center; gap: 10px; padding: 38px 20px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); color: var(--text-secondary); text-align: center; }
+.followup-empty h2, .followup-empty-state h2 { margin: 0; color: var(--text); font-size: 17px; }
+.followup-empty p, .followup-empty-state p { max-width: 560px; margin: 0; font-size: 13px; line-height: 1.55; }
+.followup-empty-state>svg { color: var(--brand); }
+.followup-error { padding: 10px 12px; border: 1px solid #efc6cb; border-radius: var(--radius-sm); background: #fff4f4; color: #8c2330; font-size: 12px; }
+.followup-notice { display: flex; justify-content: space-between; gap: 12px; margin: 0; padding: 9px 11px; border-radius: var(--radius-sm); background: var(--green-soft); color: var(--green); font-size: 12px; }
+.followup-notice button { border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.followup-dialog { width: min(560px, calc(100vw - 28px)); max-width: none; max-height: min(92vh, 850px); padding: 0; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); color: var(--text); box-shadow: 0 24px 80px #20212430; }
+.followup-dialog::backdrop { background: #20212466; }
+.followup-dialog form { display: grid; gap: 14px; padding: 21px; }
+.followup-dialog-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding-bottom: 7px; border-bottom: 1px solid var(--border); }
+.followup-dialog-header .eyebrow { margin: 0 0 4px; color: var(--text-secondary); font-size: 10px; letter-spacing: .07em; }
+.followup-dialog-header h2 { margin: 0; font-size: 19px; }
+.followup-dialog-close { display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; color: var(--text-secondary); font: inherit; font-size: 18px; cursor: pointer; }
+.followup-field { display: grid; gap: 5px; color: var(--text); font-size: 12px; font-weight: 600; }
+.followup-field>span { display: flex; gap: 4px; align-items: baseline; }
+.followup-field>span>b { color: var(--danger); }
+.followup-field>span>small { color: var(--text-secondary); font-size: 10px; font-weight: 400; }
+.followup-field input, .followup-field textarea, .followup-field select { width: 100%; min-height: 36px; padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font: inherit; font-size: 13px; font-weight: 400; }
+.followup-field textarea { min-height: 84px; resize: vertical; }
+.followup-field input:focus-visible, .followup-field textarea:focus-visible, .followup-field select:focus-visible, .followup-dialog button:focus-visible, .followup-controls select:focus-visible, .followup-controls input:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.followup-field [aria-invalid="true"] { border-color: var(--danger); }
+.followup-field-error { color: var(--danger); font-size: 11px; font-weight: 500; }
+.followup-hint { color: var(--text-secondary); font-size: 10px; font-weight: 400; }
+.followup-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.followup-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 7px; border-top: 1px solid var(--border); }
+.followup-dialog-actions button { min-width: 112px; }
+.followup-tracker .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (max-width: 760px) {
+  .followup-toolbar { align-items: flex-start; flex-direction: column; }
+  .followup-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .followup-controls { align-items: stretch; }
+  .followup-search { flex-basis: 100%; }
+  .followup-select { flex: 1 1 120px; }
+}
+@media (max-width: 480px) {
+  .followup-toolbar-actions { width: 100%; }
+  .followup-toolbar-actions button { flex: 1; }
+  .followup-form-grid { grid-template-columns: 1fr; }
+  .followup-dialog form { padding: 16px; }
+}

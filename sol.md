@@ -29,7 +29,7 @@ The repository uses:
 - Chrome Extension Manifest V3.
 - esbuild through `scripts/build.mjs`; build output is `dist/`.
 - Vitest for automated tests.
-- Plain HTML/CSS/TypeScript for the popup and activity page; a separate React/TypeScript dashboard includes opt-in local History summaries and estimated active-time tracking in Sites & Activity, an optional site-permission manager, Context Keeper, and Trust Monitor integration. Web Recall and Follow-up Tracker remain placeholders.
+- Plain HTML/CSS/TypeScript for the popup and activity page; a separate React/TypeScript dashboard includes opt-in local History summaries and estimated active-time tracking in Sites & Activity, an optional site-permission manager, Context Keeper, Trust Monitor integration, and a local manual Follow-up Tracker. Web Recall remains a placeholder.
 - `chrome.storage.local` for bounded local event storage.
 - A local Node.js testbed and collector.
 
@@ -60,7 +60,8 @@ Reuse the existing code. Do not recreate the project or add a second event pipel
 - `src/core/`: event validation, normalization, ingestion pipeline, and bounded local storage.
 - `src/analysis/`: deterministic rule engine, findings, evidence links, assessment logic.
 - `src/popup/`: extension UI and views.
-- `src/dashboard/`: separate React dashboard page, local History summary/query, optional site-permission review, Context Keeper UI, and Trust Monitor presentation over existing messages and analysis functions.
+- `src/dashboard/`: separate React dashboard page, local History summary/query, optional site-permission review, Context Keeper and Follow-up Tracker UIs, and Trust Monitor presentation over existing messages and analysis functions.
+- `src/dashboard/follow-up-store.ts`: validated, bounded follow-up model, local persistence, filtering/sorting, and local-calendar due grouping.
 - `src/dashboard/context-workspaces.ts`, `context-tabs.ts`, and `context-keeper.tsx`: validated, bounded local workspace persistence, Tabs API integration, and dashboard UI.
 - `src/dashboard/permissions.ts` and `permission-manager.tsx`: optional, user-initiated site-settings review and a bounded local log of actions made by BrowserTrust.
 - `src/background/activity-time-tracker.ts`, `src/core/activity-time.ts`: opt-in, event-driven active-time estimates and bounded local aggregates.
@@ -279,10 +280,13 @@ Context Keeper is implemented inside the React dashboard. It saves selected open
 ### Phase 5 — Trust Monitor dashboard integration
 The dashboard Trust Monitor reuses the existing extension messages for state, events, and findings; `assessSite`, `summarizeDestinations`, and the existing report builder; and the existing local event/finding/settings stores. Its views include a site assessment overview, findings with evidence and limitations, destinations, filtered activity/report, and per-origin details. Ignored origins are stored in the existing settings record and hidden only from the overview attention list; collection, findings, and evidence retention continue. No new permission or event schema is introduced. Current per-site assessments inherit the assessment engine's existing site-origin scope and global collector/content-script coverage inputs.
 
-### Phase 6 — Optional AI contextual analysis
+### Phase 6 — Manual Follow-up Tracker
+The React dashboard offers user-created follow-ups with create, edit, complete/reopen, and confirmed delete actions. Records use a dedicated `bt.followUps` local-storage key, validated schema-versioned data, and caps of 500 records and 2 MiB. Search, status/category/priority/due-group filters, sorting, dashboard counts, and due labels derive from current records; due soon is today through seven local calendar days ahead. Associated URLs are credential-free HTTP(S) links with query and fragment removed. No new permission, backend, automatic website detection, notifications, or scheduled reminders are part of this phase.
+
+### Phase 7 — Optional AI contextual analysis
 AI is not required for the R3 demo. Consider it only if it demonstrably improves explanations beyond deterministic rules. If added later, make it opt-in, send only minimized/normalized event data, disclose what leaves the device, and never send raw sensitive values by default. Keep deterministic checks functional without AI.
 
-### Phase 7 — Demo hardening and presentation
+### Phase 8 — Demo hardening and presentation
 Once the Phase 3 acceptance criteria are met, rehearse the scenario, confirm reproducibility, document limitations, and polish the presentation. Do not overstate detection or coverage.
 
 ## 9. Working rules for coding agents

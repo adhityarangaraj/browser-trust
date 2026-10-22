@@ -25,6 +25,7 @@ Phase 3 adds deterministic local analysis, persisted evidence-backed findings, d
 | Dashboard history summaries | `src/dashboard/history.ts` | dashboard extension page, History API |
 | Context Keeper workspaces | `src/dashboard/context-workspaces.ts`, `context-tabs.ts`, `context-keeper.tsx` | dashboard page; local storage and optional Tabs API |
 | Dashboard Trust Monitor | `src/dashboard/trust-monitor.tsx` | dashboard page; validated extension messages and existing analysis/report logic |
+| Follow-up Tracker | `src/dashboard/follow-up-tracker.tsx`, `follow-up-store.ts` | dashboard page; bounded local `chrome.storage.local` records, no extra permissions |
 | Estimated active-time tracking | `src/background/activity-time-tracker.ts`, `src/core/activity-time.ts` | service worker; bounded `chrome.storage.local` aggregates |
 | Schema and messages | `src/shared/` | shared |
 | Local test fixture | `testbed/` | standalone Node process/browser page; never imported by extension |
@@ -33,6 +34,7 @@ Entry points are bundled by `scripts/build.mjs`: `src/background/index.ts` to `b
 
 The dashboard's optional `history`, `contentSettings`, and `tabs` access is separate from the event pipeline and requested only for the corresponding user-initiated features. Context Keeper stores snapshots locally; it does not store live tab IDs. Effective content settings do not reveal whether Chrome uses a per-site exception or a broader default.
 Trust Monitor reads the existing event, finding, and settings stores through background messages. Ignored origins only leave its overview attention list; monitoring and evidence retention continue, and direct site review remains available.
+Follow-up Tracker stores only user-entered, validated reminders locally. It does not scan history or page data, send notifications, or schedule background work.
 
 **All events go through `EventPipeline`** (`emit` for collectors, `ingestFromContent` for content scripts). No other module writes events to storage.
 

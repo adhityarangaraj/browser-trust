@@ -4,7 +4,6 @@ import {
   Activity,
   ArrowDownWideNarrow,
   ArrowRight,
-  Bell,
   CalendarClock,
   Check,
   Clock3,
@@ -35,6 +34,7 @@ import { getHistoryRange, querySiteHistory, type HistoryActivityResult, type His
 import { PermissionManager } from './permission-manager';
 import { ContextKeeper } from './context-keeper';
 import { TrustMonitor } from './trust-monitor';
+import { FollowUpTracker } from './follow-up-tracker';
 
 type ViewId = 'overview' | 'sites' | 'permissions' | 'recall' | 'followups' | 'spaces' | 'trust';
 type SortKey = 'visits' | 'lastVisitTime' | 'host' | 'activeMs';
@@ -76,7 +76,7 @@ const headings: Record<ViewId, { title: string; description: string }> = {
   },
   followups: {
     title: 'Follow-up Tracker',
-    description: 'Keep renewals and important dates easy to remember.',
+    description: 'Track renewals, tasks, and deadlines in a private local list.',
   },
   spaces: {
     title: 'Context Keeper',
@@ -205,6 +205,8 @@ function App() {
             <PermissionManager />
           ) : activeView === 'spaces' ? (
             <ContextKeeper />
+          ) : activeView === 'followups' ? (
+            <FollowUpTracker />
           ) : activeView === 'trust' ? (
             <TrustMonitor />
           ) : (
@@ -213,7 +215,7 @@ function App() {
           <footer className="page-footer">
             <span>BrowserTrust dashboard</span>
             <span>
-              <span className="status-dot" /> {activeView === 'sites' || activeView === 'permissions' || activeView === 'spaces' || activeView === 'trust' ? 'Data and workspace snapshots stay on this device' : 'This view is a placeholder'}
+              <span className="status-dot" /> {activeView === 'sites' || activeView === 'permissions' || activeView === 'spaces' || activeView === 'followups' || activeView === 'trust' ? 'Data and workspace snapshots stay on this device' : 'This view is a placeholder'}
             </span>
           </footer>
         </div>
@@ -669,7 +671,7 @@ function FeaturePlaceholder({
   view,
   onNavigate,
 }: {
-  view: Exclude<ViewId, 'overview' | 'sites' | 'permissions' | 'spaces' | 'trust'>;
+  view: Exclude<ViewId, 'overview' | 'sites' | 'permissions' | 'spaces' | 'followups' | 'trust'>;
   onNavigate: (view: ViewId) => void;
 }) {
   const feature: Record<
@@ -681,12 +683,6 @@ function FeaturePlaceholder({
       title: 'Find your way back to useful pages.',
       description: 'Search history and pages you explicitly save, with simple filters to narrow the results.',
       rows: ['Search page titles and URLs', 'Filter by date', 'Keep a personal saved-page list'],
-    },
-    followups: {
-      icon: Bell,
-      title: 'Keep important dates in view.',
-      description: 'Add reminders and renewals yourself, then review what is coming up.',
-      rows: ['Create and edit reminders', 'Track renewal dates and intervals', 'Review upcoming dates'],
     },
   };
   const content = feature[view];
