@@ -19,6 +19,17 @@ const REQUIRED_FILES = [
   'popup.html',
   'popup.css',
   'activity.html',
+  'dashboard.js',
+  'dashboard.html',
+  'dashboard.css',
+  'fonts/inter-latin-400-normal.woff2',
+  'fonts/inter-latin-500-normal.woff2',
+  'fonts/inter-latin-600-normal.woff2',
+  'fonts/inter-latin-700-normal.woff2',
+  'licenses/inter-OFL.txt',
+  'licenses/lucide-react-MIT.txt',
+  'licenses/react-MIT.txt',
+  'licenses/react-dom-MIT.txt',
   'manifest.json',
   'icons/icon-16.png',
   'icons/icon-48.png',
@@ -44,6 +55,9 @@ if (!errors.length) {
       if (!manifest.icons?.[size]) errors.push(`manifest.icons.${size} missing`);
     }
     if (!manifest.action?.default_popup) errors.push('action.default_popup missing');
+    const dashboardHtml = readFileSync(join(dist, 'dashboard.html'), 'utf8');
+    if (!dashboardHtml.includes('href="dashboard.css"')) errors.push('dashboard.html does not link dashboard.css');
+    if (!dashboardHtml.includes('src="dashboard.js"')) errors.push('dashboard.html does not load dashboard.js');
   } catch (error) {
     errors.push(`manifest.json unreadable: ${error instanceof Error ? error.message : String(error)}`);
   }
