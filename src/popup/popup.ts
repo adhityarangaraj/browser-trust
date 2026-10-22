@@ -1,5 +1,6 @@
 import { assessSite, type AssessmentState } from '../analysis/assessment';
 import { summarizeDestinations } from '../analysis/destinations';
+import { buildReport, reportToJson, reportToMarkdown, type Report } from '../analysis/report';
 import type { Finding } from '../analysis/types';
 import { ALL_SITES_PATTERNS, analyzeUrl, isOriginCovered } from '../config/access';
 import { sendRequest, type StateSnapshot } from '../shared/messages';
@@ -36,6 +37,8 @@ const eventsList = el('events-list');
 const clearEvents = el<HTMLButtonElement>('clear-events');
 const refreshButton = el<HTMLButtonElement>('refresh');
 const refreshStatus = el('refresh-status');
+const copyReportButton = document.getElementById('copy-report') as HTMLButtonElement | null;
+const downloadReportButton = document.getElementById('download-report') as HTMLButtonElement | null;
 const behaviorList = el('behavior-list');
 const activityLink = document.querySelector<HTMLAnchorElement>('.view-activity');
 const activityPage = document.body.dataset.page === 'activity';
@@ -49,6 +52,7 @@ const timelineCategoryEnabled = new Map<string, boolean>(
 let timelineSearchQuery = '';
 let timelineAllEvents: BrowserTrustEvent[] = [];
 let flashResetTimer: number | undefined;
+let latestReport: Report | undefined;
 
 interface ActiveTab { url?: string; id?: number; }
 let currentTab: ActiveTab = {};
@@ -384,6 +388,20 @@ async function refresh(): Promise<void> {
     renderBehavior(assessment.events, assessment.findings);
     renderDestinations(assessment.events, assessment.findings);
     renderTimeline(assessment.events);
+    latestReport = buildReport(
+      assessment.events,
+      assessment.findings,
+      summarizeDestinations(assessment.events),
+      assessment,
+      {
+        host: site.ok ? site.host : undefined,
+        monitoringEnabled: state.settings.monitoringEnabled,
+        coverageGranted: siteAccessGranted,
+      },
+    );
+    const hasAny = assessment.events.length > 0 || assessment.findings.length > 0;
+    if (copyReportButton) copyReportButton.disabled = !hasAny;
+    if (downloadReportButton) downloadReportButton.disabled = !hasAny;
     clearEvents.disabled = events.length === 0 && findings.length === 0;
     refreshStatus.textContent = `Updated ${new Date().toLocaleTimeString()}`;
   } catch (error) {
@@ -442,6 +460,54 @@ if (eventsSearchInput) {
     renderTimeline(timelineAllEvents);
   });
 }
+
+async function withButtonBusy(button: HTMLButtonElement, label: string, task: () => Promise<void>): Promise<void> {
+  const original = button.textContent;
+  button.disabled = true;
+  try {
+    await task();
+    refreshStatus.textContent = label;
+  } catch (error) {
+    showError(error);
+  } finally {
+    button.textContent = original;
+    button.disabled = false;
+  }
+}
+
+function reportFilename(report: Report, extension: 'json' | 'md'): string {
+  const host = report.host ?? 'site';
+  const stamp = report.generatedAt.replace(/[:.]/g, '-');
+  return `browsertrust-${host}-${stamp}.${extension}`;
+}
+
+copyReportButton?.addEventListener('click', () => {
+  const report = latestReport;
+  if (!report) return;
+  void withButtonBusy(copyReportButton, 'Report copied to clipboard', async () => {
+    await navigator.clipboard.writeText(reportToMarkdown(report));
+  });
+});
+
+downloadReportButton?.addEventListener('click', () => {
+  const report = latestReport;
+  if (!report) return;
+  void withButtonBusy(downloadReportButton, 'Report downloaded', async () => {
+    const blob = new Blob([reportToJson(report)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    try {
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = reportFilename(report, 'json');
+      anchor.rel = 'noopener';
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  });
+});
 
 renderTimelineFilters();
 
