@@ -22,7 +22,7 @@ after(async () => {
 test('serves the clearly labelled local fixture', async () => {
   const response = await fetch(baseUrl);
   assert.equal(response.status, 200);
-  assert.match(await response.text(), /A suspicious website/);
+  assert.match(await response.text(), /Suspicious behavior demo/);
 });
 
 test('accepts and logs only the fixed synthetic POST', async () => {
