@@ -685,12 +685,6 @@ function FeaturePlaceholder({
       description: 'Add reminders and renewals yourself, then review what is coming up.',
       rows: ['Create and edit reminders', 'Track renewal dates and intervals', 'Review upcoming dates'],
     },
-    spaces: {
-      icon: PanelsTopLeft,
-      title: 'Pick up where you left off.',
-      description: 'Save related tabs into named workspaces and restore them when the time is right.',
-      rows: ['Save selected tabs', 'Organize named workspaces', 'Restore a workspace later'],
-    },
     trust: {
       icon: ShieldCheck,
       title: 'Evidence-backed site activity.',

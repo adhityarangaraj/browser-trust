@@ -221,7 +221,7 @@ function countTabs(workspace: SavedWorkspace): number {
 function countRawTabs(value: Record<string, unknown>): number {
   if (!Array.isArray(value.groups)) return 0;
   const groups = value.groups as unknown[];
-  return groups.reduce((count, group: unknown) =>
+  return groups.reduce<number>((count, group: unknown) =>
     count + (isRecord(group) && Array.isArray(group.tabs) ? group.tabs.length : 0), 0);
 }
 
