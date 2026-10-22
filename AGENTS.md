@@ -1,4 +1,4 @@
-# AGENTS.md
+﻿# AGENTS.md
 
 Guidance for AI agents and contributors working on BrowserTrust.
 
@@ -21,11 +21,18 @@ Phase 3 adds deterministic local analysis, persisted evidence-backed findings, d
 | Validation, storage, ingestion | `src/core/` | service worker |
 | Deterministic rules, findings, assessment | `src/analysis/` | service worker/popup pure logic |
 | Settings and site access | `src/config/` | extension contexts |
-| UI | `src/popup/` | popup and activity extension page |
+| UI | `src/popup/`, `src/dashboard/` | popup/activity pages and React dashboard extension page |
+| Dashboard history summaries | `src/dashboard/history.ts` | dashboard extension page, History API |
+| Context Keeper workspaces | `src/dashboard/context-workspaces.ts`, `context-tabs.ts`, `context-keeper.tsx` | dashboard page; local storage and optional Tabs API |
+| Dashboard Trust Monitor | `src/dashboard/trust-monitor.tsx` | dashboard page; validated extension messages and existing analysis/report logic |
+| Estimated active-time tracking | `src/background/activity-time-tracker.ts`, `src/core/activity-time.ts` | service worker; bounded `chrome.storage.local` aggregates |
 | Schema and messages | `src/shared/` | shared |
 | Local test fixture | `testbed/` | standalone Node process/browser page; never imported by extension |
 
-Entry points are bundled by `scripts/build.mjs`: `src/background/index.ts` to `background.js` (ESM), `src/content/index.ts` to `content.js` (IIFE), `src/page-hooks/index.ts` to `page-hook.js` (IIFE), and `src/popup/popup.ts` to `popup.js` (IIFE). Static extension files are copied into `dist/`.
+Entry points are bundled by `scripts/build.mjs`: `src/background/index.ts` to `background.js` (ESM), `src/content/index.ts` to `content.js` (IIFE), `src/page-hooks/index.ts` to `page-hook.js` (IIFE), `src/popup/popup.ts` to `popup.js` (IIFE), and `src/dashboard/dashboard.tsx` to `dashboard.js` (React IIFE). Static extension files and locally bundled Inter font assets are copied into `dist/`. Sites & Activity, Permissions, and Context Keeper use their optional browser APIs after user action.
+
+The dashboard's optional `history`, `contentSettings`, and `tabs` access is separate from the event pipeline and requested only for the corresponding user-initiated features. Context Keeper stores snapshots locally; it does not store live tab IDs. Effective content settings do not reveal whether Chrome uses a per-site exception or a broader default.
+Trust Monitor reads the existing event, finding, and settings stores through background messages. Ignored origins only leave its overview attention list; monitoring and evidence retention continue, and direct site review remains available.
 
 **All events go through `EventPipeline`** (`emit` for collectors, `ingestFromContent` for content scripts). No other module writes events to storage.
 
@@ -51,6 +58,7 @@ Entry points are bundled by `scripts/build.mjs`: `src/background/index.ts` to `b
 - Content/page messages are untrusted. A content script may only send `ingest-event`; the background derives source from `sender` and ignores any claimed source. Reject privileged messages (`get-state`, `set-monitoring`, `list-events`, `clear-events`) from tabs.
 - Render event data with `textContent` or DOM APIs, never `innerHTML`.
 - Never hardcode a product hostname. Site access comes only from user-granted optional host permissions. The local testbed hostname may appear only in `testbed/` and its documentation.
+- Dashboard permission inventory uses optional `history` and `contentSettings` only after a user action. Report content-setting values as effective values; do not imply they identify individual site exceptions. Do not claim visibility into other sites' USB, Serial, HID, or Bluetooth device grants.
 - Do not add third-party network calls to the extension. Any future AI analysis must be optional/off by default and receive only normalized/minimized events.
 - Document any new permission in the README table.
 

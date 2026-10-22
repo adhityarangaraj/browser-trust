@@ -1,8 +1,8 @@
-# BrowserTrust
+﻿# BrowserTrust
 
 BrowserTrust is a standalone Chrome Manifest V3 extension that records selected website activity, tracks observed network destinations, and presents deterministic evidence-backed findings locally. The local test site is only a fixture; extension code does not import or depend on it.
 
-**Status: Phase 3 implementation.** The event pipeline, deterministic analysis, local findings store, destination summary, assessment-first popup, and View Activity page are implemented. A real Chrome demonstration has not yet been verified in this workspace; see [Verification](#verification).
+**Status: Phase 5 implementation with Sites & Activity, Permissions, Context Keeper, and dashboard Trust Monitor integration.** The event pipeline, deterministic analysis, local findings store, destination summary, assessment-first popup, View Activity page, local History summaries, estimated active browsing time, optional permission manager, local tab workspaces, and dashboard Trust Monitor views use local extension data. Web Recall and Follow-up Tracker remain placeholders. Browser behavior and permission flows still need manual Chrome verification; see [Verification](#verification).
 
 ## Requirements and commands
 
@@ -10,6 +10,7 @@ BrowserTrust is a standalone Chrome Manifest V3 extension that records selected 
 - Node.js 20 or newer and npm
 - TypeScript, esbuild, Vitest, jsdom for DOM tests, and Node's built-in test runner
 - No extension backend, database, cloud service, or remote analysis
+- React dashboard, Lucide icons, and Inter font files are bundled locally; the dashboard makes no network requests
 
 ```bash
 npm ci
@@ -24,6 +25,8 @@ npm run format:check  # Prettier check
 
 To load the extension, open `chrome://extensions`, enable Developer mode, choose **Load unpacked**, and select the generated `dist/` directory. After each build, reload the extension from that page.
 
+The standalone dashboard page is at `chrome-extension://<installed-extension-id>/dashboard.html` after loading `dist/`. Sites & Activity, Permissions, and Context Keeper request optional access only after an explicit action. Trust Monitor reads the same stored events, findings, and settings as the popup and Activity page, then derives assessments, destinations, and reports with the shared functions. Ignoring a site only hides it from the overview attention list; it does not stop collection or delete evidence.
+
 ## Permissions and coverage
 
 | Permission | Kind | Purpose |
@@ -33,9 +36,21 @@ To load the extension, open `chrome://extensions`, enable Developer mode, choose
 | `activeTab` | Required | Read the current page in the popup. |
 | `webRequest` | Optional | Observe browser request metadata; grant from the popup. |
 | `notifications` | Required | Show a native OS alert when the assessment reaches **Suspicious activity detected**, even if the popup is closed. |
+| `history` | Optional | Read local visit records for the dashboard after explicit user approval; URLs are processed in memory and not transmitted. |
+| `tabs` | Optional | Requested from Context Keeper to read open tab URLs/titles for saving and duplicate review; also used with `idle` and `alarms` for opt-in active-time estimates. |
+| `idle`, `alarms` | Optional | Required only for opt-in active browsing-time estimates: detect idle state and checkpoint once per minute. |
+| `contentSettings` | Optional | Requested from Permissions when the user enables settings review. Reads effective per-site content settings and can add a BrowserTrust-owned restrictive site rule after explicit confirmation. |
 | `http://*/*`, `https://*/*` | Optional host permissions | User-controlled site access, requested per site or for all HTTP/HTTPS sites. |
 
 Monitoring is enabled by default, but BrowserTrust observes no site until host access is granted. The popup can grant or remove current-site access, allow all HTTP and HTTPS sites, pause monitoring, and grant `webRequest`. With only one site allowed, requests to other hosts may be invisible. Incomplete access or fewer than three observations including a network event is reported as **Insufficient evidence**.
+
+History summaries query up to 3,000 history items and count matching local top-level visit records in the selected local calendar range. Chrome returns visits per URL, which are filtered to the range before aggregation; a reached item cap or per-URL API failures can make results incomplete. Active time counts eligible intervals only while an HTTP(S) tab is active in the focused Chrome window and Chrome reports the user active. It is a foreground-time estimate, not attention measurement. Minute checkpoints and long worker/browser interruptions can undercount. Only local-day and hostname aggregates are stored, bounded to 30 days and 2,000 records. Current tab URLs are transiently read only to derive the hostname and are not stored by this feature. Tracking is separate from monitoring and can be paused or cleared in the dashboard.
+
+The Permissions dashboard discovers up to 100 hostnames from the last 30 days of local History results (maximum 3,000 history items), then queries effective Chrome content settings when `contentSettings` is granted. This is not a complete inventory of site grants. Chrome's API does not identify whether an effective value came from a site exception or a broader default. Blocking adds an extension-owned site rule after confirmation; resetting individual rules is done in Chrome site settings because Chrome's `contentSettings.clear()` clears all rules created by this extension. USB, Serial, HID, and Bluetooth site-grant inventories are not exposed to this manager. Its local action log records only BrowserTrust manager actions, retains at most 100 entries for 90 days, and cannot reconstruct earlier Chrome changes. See [Chrome's contentSettings API](https://developer.chrome.com/docs/extensions/reference/api/contentSettings) for API scope and limitations.
+
+Context Keeper reads open tabs only after the user grants the existing optional `tabs` permission. It saves only credential-free HTTP(S) URLs, titles, order, pinned state, and window grouping; Incognito tabs are excluded. Query strings and fragments are retained solely to restore the exact saved destination and compare duplicates conservatively; they remain local. Workspaces stay in `chrome.storage.local`, bounded to 40 workspaces, 120 tabs each, 20 window groups each, 2,000 total saved tabs, and 3 MiB serialized data. Import files are limited to 4 MiB and schema version 1; imported IDs are regenerated. Restore previews show the selected tab count and duplicate URLs before opening, then report per-tab failures. Workspace JSON export/import is local and contains no live browser tab IDs.
+
+The dashboard Trust Monitor reads the existing `bt.events`, `bt.findings`, and `bt.settings` records through extension messages and reuses `assessSite`, `summarizeDestinations`, and the existing report builder. Site views are based on recorded event origins; the assessment retains the same coverage limits as the popup. Ignoring an origin adds it to `bt.settings.ignoredOrigins` (bounded to 100 normalized HTTP(S) origins), hiding it from the overview attention list while leaving collection, stored evidence, and direct site review intact. It adds no permission and does not change findings or event retention. Trust Monitor activity filters the same retained event records, provides the existing Markdown and JSON report formats, and can clear the shared activity after confirmation.
 
 ## What BrowserTrust observes
 
@@ -119,4 +134,8 @@ Items deliberately out of scope so far: ESLint (Prettier is wired, the lint pass
 
 Automated type, unit, testbed, and build commands are available above. A passing build or unit suite does not prove Chrome permission prompts, dynamic registration, event delivery, or popup behavior work together. Manual Chrome verification must include the local demo, monitoring-disabled state, missing-permission state, empty state, and at least one permitted ordinary website before Phase 3 is called demo-ready.
 
-Latest workspace result: typecheck, all 89 Vitest tests, and build passed. The combined `npm run check` is currently blocked by a testbed fixture assertion that expects `A suspicious website`, while the fixture page currently says `Suspicious behavior demo` (8/9 Node server tests passed). Chrome/Chromium was not available on PATH, so the redesigned popup and activity page have not been browser-verified.
+Previous workspace result (2026-10-22) predates Phase 2 dashboard history/time integration. These changes have not yet been built or tested. Run `npm run check` before release, then verify dashboard URL access, History permission grant/denial, date ranges, active-time permission, tab/window/idle transitions, pause/clear, and browser restart/service-worker resumption in Chrome/Chromium.
+
+For Context Keeper, load the rebuilt extension, open the dashboard's Context Keeper view, grant optional Tabs access, and verify current-window/selected/all-window saves, selection/search behavior, edit/duplicate/delete, duplicate review, current-window and new-window restores, partial failures, and JSON export/import (including an invalid or oversized file). Incognito, restricted URLs, and URLs containing embedded credentials should not be saved.
+
+For Trust Monitor, verify the empty and error states; assessments for multiple observed sites; findings with supporting IDs, timestamps, evidence strength, and limitations; destination grouping and browser status/failure metadata; activity search/category filters; copied Markdown and downloaded JSON reports; and site ignore/unignore. Confirm that ignored sites continue to collect events and that their findings and activity remain available. The dashboard reads the retained event cap (1,000) and finding cap (500), so older activity can be absent after the existing ring buffers roll over.

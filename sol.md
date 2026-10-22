@@ -1,4 +1,4 @@
-# BrowserTrust — `sol.md`
+﻿# BrowserTrust — `sol.md`
 ## Product vision, architecture, and phased implementation plan
 
 This document is the source of truth for BrowserTrust's intended architecture, implementation phases, technical constraints, and acceptance criteria. Before making changes, every coding agent must read `sol.md`, `AGENTS.md`, `README.md`, and `PROGRESS.md`.
@@ -29,7 +29,7 @@ The repository uses:
 - Chrome Extension Manifest V3.
 - esbuild through `scripts/build.mjs`; build output is `dist/`.
 - Vitest for automated tests.
-- Plain HTML/CSS/TypeScript for the popup, without a mandatory UI framework.
+- Plain HTML/CSS/TypeScript for the popup and activity page; a separate React/TypeScript dashboard includes opt-in local History summaries and estimated active-time tracking in Sites & Activity, an optional site-permission manager, Context Keeper, and Trust Monitor integration. Web Recall and Follow-up Tracker remain placeholders.
 - `chrome.storage.local` for bounded local event storage.
 - A local Node.js testbed and collector.
 
@@ -60,6 +60,10 @@ Reuse the existing code. Do not recreate the project or add a second event pipel
 - `src/core/`: event validation, normalization, ingestion pipeline, and bounded local storage.
 - `src/analysis/`: deterministic rule engine, findings, evidence links, assessment logic.
 - `src/popup/`: extension UI and views.
+- `src/dashboard/`: separate React dashboard page, local History summary/query, optional site-permission review, Context Keeper UI, and Trust Monitor presentation over existing messages and analysis functions.
+- `src/dashboard/context-workspaces.ts`, `context-tabs.ts`, and `context-keeper.tsx`: validated, bounded local workspace persistence, Tabs API integration, and dashboard UI.
+- `src/dashboard/permissions.ts` and `permission-manager.tsx`: optional, user-initiated site-settings review and a bounded local log of actions made by BrowserTrust.
+- `src/background/activity-time-tracker.ts`, `src/core/activity-time.ts`: opt-in, event-driven active-time estimates and bounded local aggregates.
 - `public/manifest.json`: Manifest V3 configuration.
 - `scripts/build.mjs`: build and static asset copying.
 - `testbed/`: local synthetic website and collector used only for controlled testing.
@@ -238,6 +242,10 @@ Run typecheck, tests, and production build. Do not claim Chrome behavior has bee
 - README, AGENTS, and PROGRESS match actual functionality and verified results.
 - No AI, remote service, database, or unrelated architecture rewrite is introduced.
 
+### 6.7 Optional browser permission manager surface
+
+The standalone dashboard provides a user-initiated manager for effective Chrome content settings. It requests optional `history` and `contentSettings` only from explicit user actions, uses a bounded recent-history hostname list, and describes the results as effective settings rather than a complete list of per-site grants. A confirmed block adds an extension-owned site rule. Do not clear all extension-owned content-setting rules to simulate a targeted reset; direct users to Chrome site settings for individual reset. Device-grant inventories that Chrome does not expose remain explicitly unsupported. The local audit trail records BrowserTrust-initiated actions only and is bounded/retained locally.
+
 ## 7. Phase 3 must be demo-ready
 
 Phase 3 is not complete merely because the analysis engine and UI compile. By the end of Phase 3, BrowserTrust must be ready for a simple, repeatable three-minute demonstration without AI.
@@ -265,13 +273,16 @@ Do not add new features at the expense of making this end-to-end scenario reliab
 
 ## 8. Later phases — not required for the Phase 3 demo
 
-### Phase 4 — Correlation quality and coverage improvements
-Improve deduplication, event lineage, permission coverage messaging, browser limitation handling, and detection precision. Add rules only when evidence and tests justify them.
+### Phase 4 — Context Keeper workspaces
+Context Keeper is implemented inside the React dashboard. It saves selected open HTTP(S) tabs into named local workspaces, preserves source window groups and tab order, supports library search/sort/edit/duplicate/delete, previews and selectively restores tabs with duplicate handling, and imports/exports versioned JSON. It uses the existing optional `tabs` permission only after user action and does not capture page contents, credentials, or live tab IDs in storage. Storage remains bounded in the Context Keeper service; unsupported URLs are excluded during capture and rejected during import.
 
-### Phase 5 — Optional AI contextual analysis
-AI is not required for the R3 demo and must not delay Phase 3. Consider it only if it demonstrably improves explanations beyond deterministic rules. If added later, make it opt-in, send only minimized/normalized event data, disclose what leaves the device, and never send raw sensitive values by default. Keep deterministic checks functional without AI.
+### Phase 5 — Trust Monitor dashboard integration
+The dashboard Trust Monitor reuses the existing extension messages for state, events, and findings; `assessSite`, `summarizeDestinations`, and the existing report builder; and the existing local event/finding/settings stores. Its views include a site assessment overview, findings with evidence and limitations, destinations, filtered activity/report, and per-origin details. Ignored origins are stored in the existing settings record and hidden only from the overview attention list; collection, findings, and evidence retention continue. No new permission or event schema is introduced. Current per-site assessments inherit the assessment engine's existing site-origin scope and global collector/content-script coverage inputs.
 
-### Phase 6 — Demo hardening and presentation
+### Phase 6 — Optional AI contextual analysis
+AI is not required for the R3 demo. Consider it only if it demonstrably improves explanations beyond deterministic rules. If added later, make it opt-in, send only minimized/normalized event data, disclose what leaves the device, and never send raw sensitive values by default. Keep deterministic checks functional without AI.
+
+### Phase 7 — Demo hardening and presentation
 Once the Phase 3 acceptance criteria are met, rehearse the scenario, confirm reproducibility, document limitations, and polish the presentation. Do not overstate detection or coverage.
 
 ## 9. Working rules for coding agents
