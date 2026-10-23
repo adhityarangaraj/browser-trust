@@ -76,7 +76,7 @@ export function sanitizeActivityTimeData(value: unknown, now = Date.now()): Acti
     for (const entry of value.records) {
       if (!isRecord(entry) || typeof entry.day !== 'string' || typeof entry.host !== 'string') continue;
       const timestamp = dayKeyToTimestamp(entry.day);
-      const host = normalizeWebHost(`https://${entry.host}`);
+      const host = normalizeStoredHost(entry.host);
       if (timestamp === undefined || entry.day < oldestDay || entry.day > newestDay || !host) continue;
       if (typeof entry.activeMs !== 'number' || !Number.isFinite(entry.activeMs) || entry.activeMs <= 0) continue;
       const key = `${entry.day}\n${host}`;

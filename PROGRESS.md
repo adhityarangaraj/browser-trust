@@ -1,5 +1,13 @@
 ﻿# Progress
 
+## Initial Web Recall implementation
+
+- Implemented local Chrome History search with explicit optional permission request, local date ranges, hostname/domain filtering, relevance/recent/visit sorting, bounded results with pagination, recent-search clearing, and clear empty/error/permission states.
+- Added a bounded local saved-item collection with notes/tags, duplicate prevention, validation, and user-controlled delete. Search results are not stored automatically; saved links must be credential-free HTTP(S). Recent terms and saved URLs remain on-device.
+- Fixed ranking to be stable when query terms are typed in a different order, corrected multi-part URL phrase scoring, and tightened active-time host validation for malformed persisted rows.
+- `npm.cmd run check` passes: TypeScript, 208 Vitest tests, 9 testbed tests, build, and `verify-dist` (22 required distribution files). The first sandboxed attempt could not spawn Vitest/esbuild; the successful run used the approved process allowance.
+- Manual Chrome verification remains pending: permission grant/denial, direct dashboard URL, history search/filter/sort/pagination, saved-item persistence/edit/delete, and clearing recent searches.
+
 ## Phase 6 — Follow-up Tracker CRUD
 
 - Added a React Follow-up Tracker page with manual create, edit, complete/reopen, confirmed delete, search, status/category/priority/due-group filters, sorting, and summary counts derived from stored items.

@@ -29,7 +29,7 @@ The repository uses:
 - Chrome Extension Manifest V3.
 - esbuild through `scripts/build.mjs`; build output is `dist/`.
 - Vitest for automated tests.
-- Plain HTML/CSS/TypeScript for the popup and activity page; a separate React/TypeScript dashboard includes opt-in local History summaries and estimated active-time tracking in Sites & Activity, an optional site-permission manager, Context Keeper, Trust Monitor integration, and a local manual Follow-up Tracker. Web Recall remains a placeholder.
+- Plain HTML/CSS/TypeScript for the popup and activity page; a separate React/TypeScript dashboard includes opt-in local History summaries and estimated active-time tracking in Sites & Activity, an optional site-permission manager, Context Keeper, Trust Monitor integration, a local manual Follow-up Tracker, and initial local-history Web Recall.
 - `chrome.storage.local` for bounded local event storage.
 - A local Node.js testbed and collector.
 
@@ -60,7 +60,7 @@ Reuse the existing code. Do not recreate the project or add a second event pipel
 - `src/core/`: event validation, normalization, ingestion pipeline, and bounded local storage.
 - `src/analysis/`: deterministic rule engine, findings, evidence links, assessment logic.
 - `src/popup/`: extension UI and views.
-- `src/dashboard/`: separate React dashboard page, local History summary/query, optional site-permission review, Context Keeper and Follow-up Tracker UIs, and Trust Monitor presentation over existing messages and analysis functions.
+- `src/dashboard/`: separate React dashboard page, local History summary/query, local-history Web Recall and saved-item store, optional site-permission review, Context Keeper and Follow-up Tracker UIs, and Trust Monitor presentation over existing messages and analysis functions.
 - `src/dashboard/follow-up-store.ts`: validated, bounded follow-up model, local persistence, filtering/sorting, and local-calendar due grouping.
 - `src/dashboard/context-workspaces.ts`, `context-tabs.ts`, and `context-keeper.tsx`: validated, bounded local workspace persistence, Tabs API integration, and dashboard UI.
 - `src/dashboard/permissions.ts` and `permission-manager.tsx`: optional, user-initiated site-settings review and a bounded local log of actions made by BrowserTrust.
@@ -283,10 +283,13 @@ The dashboard Trust Monitor reuses the existing extension messages for state, ev
 ### Phase 6 — Manual Follow-up Tracker
 The React dashboard offers user-created follow-ups with create, edit, complete/reopen, and confirmed delete actions. Records use a dedicated `bt.followUps` local-storage key, validated schema-versioned data, and caps of 500 records and 2 MiB. Search, status/category/priority/due-group filters, sorting, dashboard counts, and due labels derive from current records; due soon is today through seven local calendar days ahead. Associated URLs are credential-free HTTP(S) links with query and fragment removed. No new permission, backend, automatic website detection, notifications, or scheduled reminders are part of this phase.
 
-### Phase 7 — Optional AI contextual analysis
+### Initial Web Recall implementation
+Web Recall uses the existing optional `history` permission, requested only after an explicit action in the Recall view. It searches Chrome history locally by title/URL text, supports local date ranges, domain filtering, relevance/recent/visit sorting, and bounded result pagination. Search results are never saved automatically. Recent search terms stay local and are user-clearable; saved Recall items support notes/tags and are bounded in `chrome.storage.local`. Saved URLs are credential-free HTTP(S) and preserve query strings/fragments to reopen the exact selected destination. The feature does not inspect page content or transmit data. Manual Chrome verification remains required.
+
+### Phase 8 — Optional AI contextual analysis
 AI is not required for the R3 demo. Consider it only if it demonstrably improves explanations beyond deterministic rules. If added later, make it opt-in, send only minimized/normalized event data, disclose what leaves the device, and never send raw sensitive values by default. Keep deterministic checks functional without AI.
 
-### Phase 8 — Demo hardening and presentation
+### Phase 9 — Demo hardening and presentation
 Once the Phase 3 acceptance criteria are met, rehearse the scenario, confirm reproducibility, document limitations, and polish the presentation. Do not overstate detection or coverage.
 
 ## 9. Working rules for coding agents

@@ -41,7 +41,7 @@ function tokenize(query: string): string[] {
  * Score a single item against a search query.
  *
  * Scoring signals (additive):
- *  - Exact title phrase match: +20
+ *  - All query terms match the title: +20
  *  - Each title term match: +5
  *  - Exact URL phrase match: +15
  *  - Each URL term match: +3
@@ -49,7 +49,7 @@ function tokenize(query: string): string[] {
  *  - Recency bonus: up to +10 (decays linearly over 30 days)
  *  - Visit frequency bonus: +1 per visit, capped at +10
  *
- * Returns 0 when no query terms match title or URL at all.
+ * Returns 0 when no query terms match the title, URL, or hostname.
  */
 export function scoreItem(item: RankableItem, query: string, now = Date.now()): number {
   const terms = tokenize(query);
@@ -66,14 +66,16 @@ export function scoreItem(item: RankableItem, query: string, now = Date.now()): 
   let score = 0;
   let anyMatch = false;
 
-  // Exact phrase match in title
-  if (titleLower.includes(queryLower)) {
+  // Reward titles containing every term without making the score depend on
+  // the order in which the user typed those terms.
+  if (terms.every((term) => titleLower.includes(term))) {
     score += 20;
     anyMatch = true;
   }
 
-  // Exact phrase match in URL
-  if (urlLower.includes(queryLower)) {
+  // A multi-part URL phrase (for example, "typescript-guide") is a stronger
+  // match than a single word that happens to be a substring of that phrase.
+  if (/[-_/\s]/.test(queryLower) && urlLower.includes(queryLower)) {
     score += 15;
     anyMatch = true;
   }

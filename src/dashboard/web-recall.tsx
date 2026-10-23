@@ -102,7 +102,7 @@ export function WebRecall() {
   const [now] = useState(Date.now);
   const searchRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   // Load saved items and recent searches on mount
   useEffect(() => {
@@ -135,8 +135,12 @@ export function WebRecall() {
     return () => { cancelled = true; };
   }, []);
 
-  const searchHistory = useCallback(async (searchQuery: string, searchPeriod: RecallPeriod) => {
-    if (status !== 'ready') return;
+  const searchHistory = useCallback(async (
+    searchQuery: string,
+    searchPeriod: RecallPeriod,
+    permissionGrantedForRequest = false,
+  ) => {
+    if (status !== 'ready' && !permissionGrantedForRequest) return;
     setStatus('loading');
     setHistoryError('');
     try {
@@ -215,7 +219,10 @@ export function WebRecall() {
       const allowed = await chrome.permissions.request({ permissions: ['history'] });
       if (allowed) {
         setStatus('ready');
-        if (query.trim()) void searchHistory(query, period);
+        if (query.trim()) {
+          setSubmittedQuery(query);
+          void searchHistory(query, period, true);
+        }
       } else {
         setStatus('permission');
       }
@@ -538,6 +545,7 @@ export function WebRecall() {
                   <strong>{processedResults.length}</strong>{' '}
                   {processedResults.length === 1 ? 'result' : 'results'}
                   {domainFilter ? ` on ${domainFilter}` : ''}
+                  {results.length === 500 ? ' · Showing up to 500 matching pages' : ''}
                 </span>
               </div>
 
