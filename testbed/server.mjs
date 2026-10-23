@@ -1,6 +1,8 @@
 import { createServer as createHttpServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { isDeepStrictEqual } from 'node:util';
+import { LOOTRUSH_ACTIVITY_REQUESTS } from './demo-activity.js';
 
 export const TESTBED_HOST = '127.0.0.1';
 export const TESTBED_PORT = 4173;
@@ -14,8 +16,15 @@ const assetPaths = new Map([
   ['/index.html', { file: 'index.html', type: 'text/html; charset=utf-8' }],
   ['/styles.css', { file: 'styles.css', type: 'text/css; charset=utf-8' }],
   ['/app.js', { file: 'app.js', type: 'text/javascript; charset=utf-8' }],
+  ['/demo-activity.js', { file: 'demo-activity.js', type: 'text/javascript; charset=utf-8' }],
 ]);
+const lootRushPayloads = new Map(LOOTRUSH_ACTIVITY_REQUESTS.map(({ endpoint, payload }) => [endpoint, payload]));
+const knownPostPaths = new Set(['/collect', ...lootRushPayloads.keys()]);
 const MAX_BODY_BYTES = 2048;
+
+function isLootRushEndpoint(pathname) {
+  return lootRushPayloads.has(pathname);
+}
 
 /** Accept only this fixture's fixed synthetic payload; never log arbitrary input. */
 export function isSyntheticSubmission(value) {
@@ -58,7 +67,7 @@ export function createTestbedServer(log = (entry) => console.log(entry)) {
       response.setHeader('access-control-allow-methods', 'POST, OPTIONS');
       response.setHeader('access-control-allow-headers', 'content-type');
     }
-    if (request.method === 'OPTIONS' && pathname === '/collect') {
+    if (request.method === 'OPTIONS' && knownPostPaths.has(pathname)) {
       if (!allowedOrigin) {
         sendJson(response, 403, { ok: false, error: 'Origin not allowed' });
         return;
@@ -83,8 +92,13 @@ export function createTestbedServer(log = (entry) => console.log(entry)) {
       }
       return;
     }
-    if (request.method !== 'POST' || pathname !== '/collect') {
+    if (request.method !== 'POST' || !knownPostPaths.has(pathname)) {
       sendJson(response, 404, { ok: false, error: 'Not found' });
+      return;
+    }
+    if (isLootRushEndpoint(pathname) && origin && !allowedOrigin) {
+      sendJson(response, 403, { ok: false, error: 'Origin not allowed' });
+      request.resume();
       return;
     }
     if (!String(request.headers['content-type'] ?? '').toLowerCase().startsWith('application/json')) {
@@ -95,12 +109,23 @@ export function createTestbedServer(log = (entry) => console.log(entry)) {
 
     try {
       const payload = await readJsonBody(request);
-      if (!isSyntheticSubmission(payload)) {
-        sendJson(response, 400, { ok: false, error: 'Payload does not match the fixed synthetic fixture' });
-        return;
+      if (pathname === '/collect') {
+        if (!isSyntheticSubmission(payload)) {
+          sendJson(response, 400, { ok: false, error: 'Payload does not match the fixed synthetic fixture' });
+          return;
+        }
+        log({ received: 'synthetic-form-submission', ...SYNTHETIC_SUBMISSION });
+        sendJson(response, 200, { ok: true });
+      } else {
+        const expectedPayload = lootRushPayloads.get(pathname);
+        if (!expectedPayload || !isDeepStrictEqual(payload, expectedPayload)) {
+          sendJson(response, 400, { ok: false, error: 'Payload does not match the fixed synthetic activity' });
+          return;
+        }
+        // Log the fixed endpoint label only, never any caller-supplied body data.
+        log({ received: 'lootrush-demo-activity', endpoint: pathname });
+        sendJson(response, 200, { ok: true, endpoint: pathname });
       }
-      log({ received: 'synthetic-form-submission', ...SYNTHETIC_SUBMISSION });
-      sendJson(response, 200, { ok: true });
     } catch (error) {
       const statusCode = Number.isInteger(error?.statusCode) ? error.statusCode : 400;
       sendJson(response, statusCode, { ok: false, error: statusCode === 413 ? 'Payload too large' : 'Expected JSON' });

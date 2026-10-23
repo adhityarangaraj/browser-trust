@@ -3,84 +3,91 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BrowserTrust | Activity Lab</title>
+  <meta name="theme-color" content="#09090d">
+  <meta name="description" content="Browse fictional gaming rewards in the local LootRush security-testing fixture.">
+  <title>LootRush — Play more. Earn more.</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <header class="topbar">
-    <a class="brand" href="#" aria-label="BrowserTrust activity lab home">
-      <span class="logo">BT</span>
-      <span>BrowserTrust <small>Activity lab</small></span>
-    </a>
-    <span class="status-pill"><span class="status-dot"></span> Suspicious behavior demo</span>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="nav-shell">
+      <a class="brand" href="#home" aria-label="LootRush home">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 36 36" fill="none"><path d="M18 2.8 32 10.4v15.2L18 33.2 4 25.6V10.4L18 2.8Z" fill="currentColor"/><path d="m20.5 7.5-9 12h6l-2 9 9-12h-6l2-9Z" fill="#09090D" stroke="#09090D" stroke-linejoin="round"/></svg></span>
+        <span class="brand-name">loot<span>rush</span><small>REWARDS CLUB</small></span>
+      </a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a class="nav-link nav-link-active" href="#home">Home</a><a class="nav-link" href="#rewards">Rewards</a><a class="nav-link" href="#leaderboard">Leaderboard</a><a class="nav-link" href="#how-it-works">How it works</a>
+      </nav>
+      <div class="nav-actions">
+        <div class="points-chip" aria-label="Demo balance: 12,450 points"><span class="coin-icon" aria-hidden="true">✦</span><span><strong>12,450</strong><small>PTS</small></span></div>
+        <button class="button button-outline sign-in-button" id="profile-button" type="button">Sign in <span aria-hidden="true">↗</span></button>
+        <button class="menu-button" id="menu-button" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="mobile-nav"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      </div>
+    </div>
+    <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation" hidden><a href="#home">Home</a><a href="#rewards">Rewards</a><a href="#leaderboard">Leaderboard</a><a href="#how-it-works">How it works</a></nav>
   </header>
 
-  <main>
-    <section class="intro">
-      <p class="eyebrow">Interactive demo</p>
-      <h1>See what gets flagged.</h1>
-      <p class="intro-copy">Trigger browser behaviors, then inspect the events and findings in BrowserTrust.</p>
+  <main id="main">
+    <section class="hero section-shell" id="home" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <div class="hero-kicker"><span class="live-dot"></span> THE REWARDS CLUB FOR PLAYERS</div>
+        <h1 id="hero-title">Your next big<br>reward starts <span>here.</span></h1>
+        <p class="hero-lede">Play more. Earn points. Claim rewards. Your next favorite drop is closer than you think.</p>
+        <div class="hero-actions"><button class="button button-lime button-large" id="claim-hero" type="button">Claim your reward <span aria-hidden="true">↗</span></button><a class="button button-quiet button-large" href="#rewards">Explore rewards <span aria-hidden="true">↓</span></a></div>
+        <div class="hero-proof"><div class="avatar-stack" aria-hidden="true"><span>J</span><span>K</span><span>M</span><span>+</span></div><p><strong>Made for the next level.</strong><br><span>Rewards are fictional in this local demo.</span></p></div>
+      </div>
+      <aside class="hero-feature" aria-label="Featured reward preview">
+        <div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div>
+        <div class="feature-topline"><span class="feature-label"><span class="live-dot"></span> THIS WEEK'S DROP</span><span class="feature-index">01 / 04</span></div>
+        <div class="feature-art art-headset" aria-hidden="true"><div class="art-glow"></div><div class="headset-band"></div><div class="headset-cup cup-left"></div><div class="headset-cup cup-right"></div><div class="headset-core"></div><span class="art-spark spark-a">✦</span><span class="art-spark spark-b">✧</span><span class="art-spark spark-c">·</span></div>
+        <div class="feature-bottom"><div><span class="overline">FEATURED REWARD</span><h2>Phantom Audio Kit</h2><p>Wireless headset · Demo edition</p></div><span class="feature-points"><span aria-hidden="true">✦</span> 15,000</span></div>
+        <div class="feature-progress"><span></span></div><div class="feature-caption"><span>12,450 pts earned</span><span>83% there</span></div>
+        <div class="drop-stamp"><span>LIMITED</span><strong>DROP</strong><small>DEMO</small></div>
+      </aside>
     </section>
 
-    <section class="workspace">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">Actions</p>
-          <h2>Run an activity</h2>
-        </div>
-        <span class="step-label">Choose one or run all three</span>
-      </div>
-
-      <div class="action-grid">
-        <article class="action-card">
-          <div class="card-top"><span class="number">01</span><span class="tag blue">Form</span></div>
-          <h3>Submit a form</h3>
-          <p>Creates a real form-submit event followed by a POST request.</p>
-          <button class="button blue" id="submit-button" type="button">Submit form <span aria-hidden="true">↗</span></button>
-        </article>
-
-        <article class="action-card">
-          <div class="card-top"><span class="number">02</span><span class="tag green">Storage</span></div>
-          <h3>Write to local storage</h3>
-          <p>Writes a synthetic marker through the browser storage API.</p>
-          <button class="button green" id="storage-button" type="button">Write marker <span aria-hidden="true">↗</span></button>
-        </article>
-
-        <article class="action-card">
-          <div class="card-top"><span class="number">03</span><span class="tag blue">Network</span></div>
-          <h3>Repeat network requests</h3>
-          <p>Sends three POST requests to a second local origin in quick succession.</p>
-          <button class="button blue" id="network-button" type="button">Send 3 requests <span aria-hidden="true">↗</span></button>
-        </article>
-      </div>
-
-      <div class="action-footer">
-        <div id="result" class="result" role="status" aria-live="polite">Ready to run. Clear BrowserTrust activity, then choose an action.</div>
-        <button class="button primary" id="run-all" type="button">Run all actions <span aria-hidden="true">→</span></button>
+    <section class="rewards-section section-shell section-block" id="rewards" aria-labelledby="rewards-title">
+      <div class="section-heading"><div><p class="eyebrow">THE GOOD STUFF</p><h2 id="rewards-title">Rewards worth the grind<span>.</span></h2><p class="section-subtitle">Pick your next unlock from the drop room.</p></div><a class="text-link" href="#rewards-grid">Browse all rewards <span aria-hidden="true">→</span></a></div>
+      <div class="reward-grid" id="rewards-grid">
+        <article class="reward-card"><button class="reward-open" type="button" data-reward="arcade" aria-label="View Arcade Vault Card details"><div class="reward-art art-arcade"><span class="art-eyebrow">LEVEL UP</span><span class="arcade-symbol">AV<span>+</span></span><span class="art-caption">ARCADE VAULT</span><span class="art-star">✦</span></div><div class="reward-info"><div class="reward-type">DIGITAL DROP <span class="availability-dot"></span> AVAILABLE</div><h3>Arcade Vault Card</h3><p>Fuel your next gaming session.</p><div class="reward-bottom"><span class="reward-cost"><b>✦</b> 8,000 <small>PTS</small></span><span class="mini-progress"><i style="width:100%"></i></span></div></div></button><button class="card-arrow" type="button" data-reward="arcade" aria-label="View Arcade Vault Card"><span>↗</span></button></article>
+        <article class="reward-card"><button class="reward-open" type="button" data-reward="phantom" aria-label="View Phantom Audio Kit details"><div class="reward-art art-phantom"><span class="phantom-ring"></span><span class="phantom-gem">◇</span><span class="art-caption">PHANTOM SERIES · 01</span><span class="art-star">✧</span></div><div class="reward-info"><div class="reward-type">FEATURED DROP <span class="availability-dot"></span> AVAILABLE</div><h3>Phantom Audio Kit</h3><p>Wireless headset · Demo edition.</p><div class="reward-bottom"><span class="reward-cost"><b>✦</b> 15,000 <small>PTS</small></span><span class="mini-progress"><i style="width:83%"></i></span></div></div></button><button class="card-arrow" type="button" data-reward="phantom" aria-label="View Phantom Audio Kit"><span>↗</span></button></article>
+        <article class="reward-card"><button class="reward-open" type="button" data-reward="mystery" aria-label="View Mystery Drop details"><div class="reward-art art-mystery"><span class="mystery-box"><i></i><b>?</b></span><span class="art-caption">NO TWO DROPS ALIKE</span><span class="art-star">✦</span></div><div class="reward-info"><div class="reward-type">MYSTERY DROP <span class="availability-dot"></span> AVAILABLE</div><h3>Mystery Loot Box</h3><p>A little surprise for your setup.</p><div class="reward-bottom"><span class="reward-cost"><b>✦</b> 5,500 <small>PTS</small></span><span class="mini-progress"><i style="width:100%"></i></span></div></div></button><button class="card-arrow" type="button" data-reward="mystery" aria-label="View Mystery Loot Box"><span>↗</span></button></article>
+        <article class="reward-card"><button class="reward-open" type="button" data-reward="member" aria-label="View Member Drop details"><div class="reward-art art-member"><span class="member-cube">LR</span><span class="member-orbit"></span><span class="art-caption">MEMBERS ONLY · DEMO</span><span class="art-star">✧</span></div><div class="reward-info"><div class="reward-type">EXCLUSIVE DROP <span class="availability-dot"></span> AVAILABLE</div><h3>Member Skin Pack</h3><p>Four looks. One legendary loadout.</p><div class="reward-bottom"><span class="reward-cost"><b>✦</b> 10,000 <small>PTS</small></span><span class="mini-progress"><i style="width:100%"></i></span></div></div></button><button class="card-arrow" type="button" data-reward="member" aria-label="View Member Skin Pack"><span>↗</span></button></article>
       </div>
     </section>
 
-    <section class="why-panel">
-      <div class="why-icon" aria-hidden="true">!</div>
-      <div class="why-content">
-        <p class="eyebrow">Detection guide</p>
-        <h2>Why might BrowserTrust flag this?</h2>
-        <div class="reason-list">
-          <div class="reason"><span class="reason-mark">01</span><p><strong>Form followed by a request</strong><br>A form submission followed by matching network activity can trigger a review finding. It does not prove the form values were transmitted.</p></div>
-          <div class="reason"><span class="reason-mark">02</span><p><strong>Browser API activity</strong><br>Selected API calls can be worth reviewing, but an observed call does not prove it succeeded.</p></div>
-          <div class="reason"><span class="reason-mark">03</span><p><strong>Repeated POST requests</strong><br>Several POST requests to the same cross-origin host in a short window may match a repetition rule. Repetition alone does not prove malicious intent.</p></div>
-        </div>
+    <section class="stats-section section-shell section-block" id="leaderboard" aria-labelledby="leaderboard-title">
+      <div class="section-heading"><div><p class="eyebrow">YOUR PLAYER CARD</p><h2 id="leaderboard-title">The climb looks good<span>.</span></h2><p class="section-subtitle">A snapshot of your fictional demo profile.</p></div><span class="season-chip"><span class="live-dot"></span> SEASON 04 · DEMO</span></div>
+      <div class="stats-layout">
+        <div class="stat-card points-stat"><div class="stat-top"><span class="stat-icon stat-icon-lime" aria-hidden="true">✦</span><span class="stat-trend">+1,250 this week</span></div><span class="stat-label">POINT BALANCE</span><strong>12,450 <small>PTS</small></strong><div class="stat-foot"><span>Next reward: Phantom Audio Kit</span><span>83%</span></div><div class="large-progress"><i></i></div></div>
+        <div class="stat-card"><div class="stat-top"><span class="stat-icon" aria-hidden="true">◇</span><span class="stat-label">CLAIMED</span></div><strong>04 <small>REWARDS</small></strong><span class="stat-note">Your collection is growing.</span><div class="stat-decoration decoration-purple">04</div></div>
+        <div class="stat-card"><div class="stat-top"><span class="stat-icon" aria-hidden="true">↗</span><span class="stat-label">RANK</span></div><strong>#28 <small>THIS SEASON</small></strong><span class="stat-note">Just 340 pts to the next spot.</span><div class="rank-sparkline" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+        <div class="leaderboard-card"><div class="leaderboard-heading"><div><span class="eyebrow">THE REGULARS</span><h3>Leaderboard</h3></div><span class="leaderboard-period">WEEKLY <span aria-hidden="true">⌄</span></span></div><ol class="leaderboard-list">
+          <li><span class="rank-number rank-gold">01</span><span class="leader-avatar avatar-violet">N</span><span class="leader-name">neon.nova<small>Level 42</small></span><strong>18,820 <small>PTS</small></strong></li>
+          <li><span class="rank-number rank-silver">02</span><span class="leader-avatar avatar-blue">V</span><span class="leader-name">voidrunner<small>Level 38</small></span><strong>16,340 <small>PTS</small></strong></li>
+          <li><span class="rank-number rank-bronze">03</span><span class="leader-avatar avatar-pink">K</span><span class="leader-name">kira.exe<small>Level 35</small></span><strong>14,910 <small>PTS</small></strong></li>
+          <li class="leader-you"><span class="rank-number">28</span><span class="leader-avatar avatar-lime">Y</span><span class="leader-name">you (demo)<small>Level 21</small></span><strong>12,450 <small>PTS</small></strong></li>
+        </ol><p class="leaderboard-foot">All profiles and scores are fictional demo data.</p></div>
       </div>
     </section>
 
-    <form id="demo-form" action="/collect" method="post" hidden>
-      <input name="displayName" value="BrowserTrust Demo" readonly>
-      <input name="note" value="Synthetic test submission" readonly>
-      <button type="submit">Submit</button>
-    </form>
-
-    <footer>BrowserTrust · Activity lab</footer>
+    <section class="how-section section-shell section-block" id="how-it-works" aria-labelledby="how-title">
+      <div class="how-heading"><p class="eyebrow">THREE STEPS. THAT'S THE LOOP.</p><h2 id="how-title">Good things come to players<span>.</span></h2><p class="section-subtitle">The quick version of the LootRush rewards loop.</p></div>
+      <div class="steps-grid">
+        <article class="step-card"><span class="step-number">01</span><span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.3 4.3M8.3 10.8h5M10.8 8.3v5"/></svg></span><h3>Explore rewards</h3><p>Find the drops that make your setup feel like yours.</p></article>
+        <article class="step-card"><span class="step-number">02</span><span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.8 14.8 9l6.7.7-5 4.5 1.4 6.6L12 17.4l-5.9 3.4 1.4-6.6-5-4.5L9.2 9 12 2.8Z"/></svg></span><h3>Earn points</h3><p>Every quest brings your next unlock a little closer.</p></article>
+        <article class="step-card"><span class="step-number">03</span><span class="step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 9h16l-1.4 11H5.4L4 9Z"/><path d="M8 9V6a4 4 0 0 1 8 0v3M9 13h.01M15 13h.01M9 17h6"/></svg></span><h3>Claim your prize</h3><p>Use your points to unlock a reward. Easy as that.</p></article>
+      </div>
+      <div class="cta-band"><div class="cta-sigil" aria-hidden="true">✦</div><div><p class="eyebrow">YOUR NEXT DROP IS WAITING</p><h3>Ready to make a move?</h3><p>Take a look at what's in the drop room today.</p></div><a class="button button-lime" href="#rewards">Explore rewards <span aria-hidden="true">→</span></a></div>
+    </section>
   </main>
-  <script src="./app.js" defer></script>
+
+  <footer class="site-footer"><div class="footer-main section-shell"><a class="brand footer-brand" href="#home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 36 36" fill="none"><path d="M18 2.8 32 10.4v15.2L18 33.2 4 25.6V10.4L18 2.8Z" fill="currentColor"/><path d="m20.5 7.5-9 12h6l-2 9 9-12h-6l2-9Z" fill="#09090D" stroke="#09090D" stroke-linejoin="round"/></svg></span><span class="brand-name">loot<span>rush</span><small>REWARDS CLUB</small></span></a><p>Play hard. Collect good stuff.</p><nav aria-label="Footer navigation"><a href="#rewards">Rewards</a><a href="#leaderboard">Leaderboard</a><a href="#how-it-works">How it works</a></nav></div><div class="footer-bottom section-shell"><span>© 2026 LootRush Demo · fictional local fixture</span><span class="fixture-status"><i></i> LOCAL SECURITY TEST FIXTURE</span></div><p class="demo-disclaimer">No real sign-in, payment, points, or prize delivery. This page sends fixed synthetic requests only to its own loopback test server.</p></footer>
+
+  <dialog class="demo-dialog" id="demo-dialog" aria-labelledby="dialog-title"><div class="dialog-shell"><button class="dialog-close" id="dialog-close" type="button" aria-label="Close dialog">×</button><div id="dialog-content"></div></div></dialog>
+  <div class="network-status" id="network-status" role="status" aria-live="polite">Preparing local demo activity…</div>
+  <form id="demo-form" action="/collect" method="post" hidden><input name="displayName" value="BrowserTrust Demo" readonly><input name="note" value="Synthetic test submission" readonly><button type="submit">Submit local demo claim</button></form>
+  <script type="module" src="./app.js"></script>
 </body>
 </html>

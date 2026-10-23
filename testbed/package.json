@@ -1,0 +1,11 @@
+{
+  "name": "browsertrust-lootrush-testbed",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Isolated local LootRush-style security test fixture for BrowserTrust",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test server-test.mjs"
+  }
+}
