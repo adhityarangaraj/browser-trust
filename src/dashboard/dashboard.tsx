@@ -91,8 +91,13 @@ const headings: Record<ViewId, { title: string; description: string }> = {
 
 const PERIODS: readonly HistoryPeriod[] = ['Today', 'Last 7 days', 'Last 30 days'];
 
+function initialView(): ViewId {
+  const requested = new URLSearchParams(window.location.search).get('view');
+  return navItems.some((item) => item.id === requested) ? (requested as ViewId) : 'overview';
+}
+
 function App() {
-  const [activeView, setActiveView] = useState<ViewId>('overview');
+  const [activeView, setActiveView] = useState<ViewId>(initialView);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const current = headings[activeView];
 

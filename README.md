@@ -147,3 +147,5 @@ For Trust Monitor, verify the empty and error states; assessments for multiple o
 For Follow-up Tracker, verify create/edit, completion/reopen, confirmed deletion and cancellation, reload persistence, invalid title/date/URL messages, local-calendar due groups including date boundaries, all filters and sort orders, empty/no-match states, and deliberate opening of an associated HTTP(S) link. Confirm that no browser permission prompt or automatic reminder appears.
 
 For Web Recall, verify empty and no-match states, date ranges, domain filtering, each sort mode, recent-search clearing, pagination, saved-item notes/tags, reload persistence, and deliberate opening of a saved HTTP(S) page. Grant History access only from the view and confirm denying it does not break other dashboard views.
+
+The extension popup also provides six dashboard shortcuts: Sites & Activity, Permissions, Web Recall, Follow-up Tracker, Context Keeper, and Trust Monitor. Each opens the matching dashboard view in an extension tab; the dashboard side navigation remains available.

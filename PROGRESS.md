@@ -98,3 +98,5 @@ Implemented in the existing Phase 2 architecture:
 3. Record the manual results here and update README only if observed behavior differs from the documented flow.
 
 Phase 3 is implemented and automated checks largely pass, but it is not marked demo-ready until the remaining commands and real-browser checks above are completed.
+
+- Popup dashboard launcher: added six shortcuts for the implemented dashboard feature views. The dashboard reads the requested iew query parameter on load so each shortcut opens its corresponding section; existing dashboard styling and sidebar remain in place. Not yet verified in Chrome/Chromium.
