@@ -42,10 +42,24 @@ const copyReportButton = document.getElementById('copy-report') as HTMLButtonEle
 const downloadReportButton = document.getElementById('download-report') as HTMLButtonElement | null;
 const themeToggle = document.getElementById('theme-toggle') as HTMLButtonElement | null;
 const behaviorList = el('behavior-list');
-const activityLink = document.querySelector<HTMLAnchorElement>('.view-activity');
+const activityLink = document.querySelector<HTMLAnchorElement>('.view-activity-link, .view-activity');
 const activityPage = document.body.dataset.page === 'activity';
 const eventsSearchInput = document.getElementById('events-search') as HTMLInputElement | null;
 const eventsCategoryFilters = document.getElementById('events-category-filters');
+
+// Tab switching (popup only — activity page uses sections)
+if (!activityPage) {
+  const tabs = document.querySelectorAll<HTMLButtonElement>('.tab-bar .tab');
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      tabs.forEach((t) => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+      tab.classList.add('active'); tab.setAttribute('aria-selected', 'true');
+      document.querySelectorAll<HTMLElement>('.tab-panel').forEach((p) => { p.hidden = true; p.classList.remove('active'); });
+      const panel = document.getElementById(`panel-${tab.dataset.tab}`);
+      if (panel) { panel.hidden = false; panel.classList.add('active'); }
+    });
+  });
+}
 
 const TIMELINE_CATEGORIES: readonly string[] = ['page', 'dom', 'form', 'storage', 'network', 'capability'];
 const CATEGORY_LABELS: Record<string, string> = {

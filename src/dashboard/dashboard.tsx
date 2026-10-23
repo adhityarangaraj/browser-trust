@@ -4,18 +4,23 @@ import {
   Activity,
   ArrowDownWideNarrow,
   ArrowRight,
+  Bell,
   CalendarClock,
+  Camera,
   Check,
   Clock3,
   Compass,
   Globe2,
   LayoutDashboard,
+  MapPin,
   Menu,
+  Mic,
   PanelsTopLeft,
   Pause,
   Play,
   RefreshCw,
   Search,
+  Shield,
   ShieldCheck,
   Trash2,
   type LucideIcon,
@@ -45,17 +50,28 @@ type NavItem = {
   id: ViewId;
   label: string;
   icon: LucideIcon;
-  group: string;
 };
 
-const navItems: NavItem[] = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard, group: 'YOUR BROWSER' },
-  { id: 'sites', label: 'Sites & Activity', icon: Activity, group: 'YOUR BROWSER' },
-  { id: 'permissions', label: 'Permissions', icon: ShieldCheck, group: 'YOUR BROWSER' },
-  { id: 'recall', label: 'Web Recall', icon: Search, group: 'YOUR TOOLS' },
-  { id: 'followups', label: 'Follow-up Tracker', icon: CalendarClock, group: 'YOUR TOOLS' },
-  { id: 'spaces', label: 'Context Keeper', icon: PanelsTopLeft, group: 'YOUR TOOLS' },
-  { id: 'trust', label: 'Trust Monitor', icon: ShieldCheck, group: 'PRIVACY' },
+const primaryNav: NavItem[] = [
+  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+  { id: 'sites', label: 'Sites & Activity', icon: Activity },
+  { id: 'permissions', label: 'Permissions', icon: ShieldCheck },
+  { id: 'recall', label: 'Web Recall', icon: Search },
+  { id: 'spaces', label: 'Context Keeper', icon: PanelsTopLeft },
+];
+
+const allNav: NavItem[] = [
+  ...primaryNav,
+  { id: 'followups', label: 'Follow-up Tracker', icon: CalendarClock },
+  { id: 'trust', label: 'Trust Monitor', icon: Shield },
+];
+
+const permissionIndicators = [
+  { label: 'Camera', icon: Camera },
+  { label: 'Microphone', icon: Mic },
+  { label: 'Location', icon: MapPin },
+  { label: 'Notifications', icon: Bell },
+  { label: 'Shield', icon: Shield },
 ];
 
 const headings: Record<ViewId, { title: string; description: string }> = {
@@ -93,7 +109,7 @@ const PERIODS: readonly HistoryPeriod[] = ['Today', 'Last 7 days', 'Last 30 days
 
 function initialView(): ViewId {
   const requested = new URLSearchParams(window.location.search).get('view');
-  return navItems.some((item) => item.id === requested) ? (requested as ViewId) : 'overview';
+  return allNav.some((item) => item.id === requested) ? (requested as ViewId) : 'overview';
 }
 
 function App() {
@@ -121,43 +137,53 @@ function App() {
           <span className="brand-name">BrowserTrust</span>
         </a>
 
-        <div className="workspace-switcher">
-          <span className="workspace-avatar">BT</span>
-          <span className="workspace-copy">
-            <strong>Personal workspace</strong>
-            <small>Local preview</small>
-          </span>
-        </div>
-
         <nav className="sidebar-nav" aria-label="Dashboard sections">
-          {(['YOUR BROWSER', 'YOUR TOOLS', 'PRIVACY'] as const).map((group) => (
-            <div className="nav-group" key={group}>
-              <p className="nav-group-label">{group}</p>
-              {navItems
-                .filter((item) => item.group === group)
-                .map(({ id, label, icon: Icon }) => (
-                  <button
-                    className={`nav-item${activeView === id ? ' nav-item-active' : ''}`}
-                    key={id}
-                    onClick={() => navigate(id)}
-                    aria-current={activeView === id ? 'page' : undefined}
-                  >
-                    <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
-                    <span>{label}</span>
-                  </button>
-                ))}
-            </div>
+          {primaryNav.map(({ id, label, icon: Icon }) => (
+            <button
+              className={`nav-item${activeView === id ? ' nav-item-active' : ''}`}
+              key={id}
+              onClick={() => navigate(id)}
+              aria-current={activeView === id ? 'page' : undefined}
+            >
+              <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
+              <span>{label}</span>
+            </button>
           ))}
         </nav>
 
-        <div className="sidebar-footer">
-          <div className="privacy-callout">
-            <ShieldCheck size={17} strokeWidth={1.8} aria-hidden="true" />
-            <span>
-              <strong>Private by design</strong>
-              <small>Dashboard preview runs locally.</small>
-            </span>
+        <div className="sidebar-section">
+          <p className="sidebar-section-label">TRUST MONITOR</p>
+          <button
+            className={`nav-item${activeView === 'trust' ? ' nav-item-active' : ''}`}
+            onClick={() => navigate('trust')}
+            aria-current={activeView === 'trust' ? 'page' : undefined}
+          >
+            <Shield size={17} strokeWidth={1.8} aria-hidden="true" />
+            <span>Trust Monitor</span>
+          </button>
+        </div>
+
+        <div className="sidebar-section">
+          <p className="sidebar-section-label">CURRENT SITE PERMISSIONS</p>
+          <div className="permission-indicators">
+            {permissionIndicators.map(({ label, icon: Icon }) => (
+              <div className="permission-indicator" key={label} title={label}>
+                <Icon size={15} strokeWidth={1.8} aria-hidden="true" />
+                <span>{label}</span>
+              </div>
+            ))}
           </div>
+        </div>
+
+        <div className="sidebar-bottom">
+          <button
+            className={`nav-item followup-nav${activeView === 'followups' ? ' nav-item-active' : ''}`}
+            onClick={() => navigate('followups')}
+            aria-current={activeView === 'followups' ? 'page' : undefined}
+          >
+            <CalendarClock size={17} strokeWidth={1.8} aria-hidden="true" />
+            <span>Follow-up Tracker</span>
+          </button>
           <span className="sidebar-version">BROWSERTRUST · PREVIEW</span>
         </div>
       </aside>
@@ -197,7 +223,7 @@ function App() {
               <p className="eyebrow">
                 {activeView === 'overview'
                   ? 'YOUR BROWSER COMPANION'
-                  : navItems.find((item) => item.id === activeView)?.group}
+                  : 'DASHBOARD'}
               </p>
               <h1>{current.title}</h1>
               <p className="page-description">{current.description}</p>

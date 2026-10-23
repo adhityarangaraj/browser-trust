@@ -7,15 +7,70 @@
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body data-page="activity" class="activity-page">
-    <header class="topbar"><div class="brand"><span class="brand-mark" aria-hidden="true">B</span><div><h1>BrowserTrust</h1><p>Activity investigation · <span id="site-host" class="host-pill">Current website</span></p></div></div><div class="topbar-controls"><button id="theme-toggle" class="theme-toggle secondary" title="Switch between dark and light theme" aria-label="Switch theme">Light</button><label class="switch" title="Turn monitoring on or off"><input type="checkbox" id="monitoring-toggle" aria-label="Monitoring enabled" /><span class="slider"></span></label></div></header>
-    <div id="error-box" class="notice error" role="alert" hidden></div><p id="monitoring-status" class="monitoring-status" aria-live="polite">Loading status…</p>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">B</span>
+        <div>
+          <h1>BrowserTrust</h1>
+          <p>Activity investigation · <span id="site-host" class="host-pill">Current website</span></p>
+        </div>
+      </div>
+      <div class="topbar-controls">
+        <label class="switch" title="Turn monitoring on or off">
+          <input type="checkbox" id="monitoring-toggle" aria-label="Monitoring enabled" />
+          <span class="slider"></span>
+        </label>
+      </div>
+    </header>
+
+    <div id="error-box" class="notice error" role="alert" hidden></div>
+    <p id="monitoring-status" class="monitoring-status" aria-live="polite">Loading status…</p>
+
+    <section class="assessment-card" id="assessment-card" data-state="insufficient-evidence" aria-live="polite">
+      <div class="assessment-top">
+        <span class="assessment-icon" aria-hidden="true"></span>
+        <div>
+          <h2 id="assessment-title">Loading…</h2>
+          <p id="assessment-explanation">Checking monitoring coverage and recent activity.</p>
+        </div>
+      </div>
+      <div class="summary-row" aria-label="Activity summary">
+        <div><strong id="event-count">0</strong><span>events</span></div>
+        <div><strong id="network-count">0</strong><span>network</span></div>
+        <div><strong id="finding-count">0</strong><span>findings</span></div>
+      </div>
+    </section>
+
     <main>
-      <section class="assessment-card" id="assessment-card" data-state="insufficient-evidence" aria-live="polite"><p class="eyebrow">Current assessment</p><h2 id="assessment-title">Loading…</h2><p id="assessment-explanation">Checking monitoring coverage and recent activity.</p></section>
-      <section class="coverage-section"><div class="section-heading"><h2>Coverage</h2></div><p id="site-status" class="muted">Checking this page…</p><div class="actions"><button id="allow-site" hidden></button><button id="remove-site" class="secondary" hidden>Remove site access</button><button id="allow-all" class="secondary" hidden>Allow all websites</button></div><ul id="collectors-list" class="collector-list"></ul><button id="enable-permissions" class="secondary" hidden>Grant optional permissions</button></section>
-      <section class="summary-grid" aria-label="Activity summary"><div><strong id="event-count">0</strong><span>observations</span></div><div><strong id="network-count">0</strong><span>network requests</span></div><div><strong id="finding-count">0</strong><span>findings</span></div></section>
-      <section><div class="section-heading"><h2>Observed behavior</h2></div><ul id="behavior-list" class="behavior-list"></ul></section>
-      <section><div class="section-heading"><h2>Findings</h2></div><p id="findings-empty" class="empty muted">No findings for this page.</p><ul id="findings-list" class="stack-list"></ul></section>
-      <section><div class="section-heading"><h2>Destinations</h2></div><p id="destinations-empty" class="empty muted">No network destinations observed for this page.</p><ul id="destinations-list" class="stack-list"></ul></section>
+      <section>
+        <div class="section-heading"><h2>Coverage</h2></div>
+        <p id="site-status" class="muted">Checking this page…</p>
+        <div class="actions">
+          <button id="allow-site" hidden></button>
+          <button id="remove-site" class="secondary" hidden>Remove site access</button>
+          <button id="allow-all" class="secondary" hidden>Allow all websites</button>
+        </div>
+        <ul id="collectors-list" class="collector-list"></ul>
+        <button id="enable-permissions" class="secondary" hidden>Grant optional permissions</button>
+      </section>
+
+      <section>
+        <div class="section-heading"><h2>Observed behavior</h2></div>
+        <ul id="behavior-list" class="behavior-list"></ul>
+      </section>
+
+      <section>
+        <div class="section-heading"><h2>Findings</h2></div>
+        <p id="findings-empty" class="empty muted">No findings for this page.</p>
+        <ul id="findings-list" class="stack-list"></ul>
+      </section>
+
+      <section>
+        <div class="section-heading"><h2>Destinations</h2></div>
+        <p id="destinations-empty" class="empty muted">No network destinations observed for this page.</p>
+        <ul id="destinations-list" class="stack-list"></ul>
+      </section>
+
       <section>
         <div class="section-heading"><h2>Activity timeline</h2></div>
         <div class="filter-bar" role="group" aria-label="Filter timeline">
@@ -26,7 +81,23 @@
         <ol id="events-list" class="timeline"></ol>
       </section>
     </main>
-    <footer><div class="actions footer-actions"><button id="refresh" class="secondary">Refresh</button><button id="copy-report" class="secondary">Copy report</button><button id="download-report" class="secondary">Download JSON</button><button id="clear-events" class="quiet-danger">Clear activity</button></div><p id="refresh-status" class="muted" role="status" aria-live="polite"></p><p>Observed events and inferred relationships are shown separately. Coverage depends on permissions and browser visibility.</p></footer>
+
+    <footer>
+      <div class="footer-bar">
+        <span class="muted" style="font-size:11px">Coverage depends on permissions and browser visibility.</span>
+        <div class="footer-actions">
+          <button id="refresh" class="btn-icon" title="Refresh">↻</button>
+          <button id="copy-report" class="btn-icon" title="Copy report">⎘</button>
+          <button id="download-report" class="btn-icon" title="Download JSON">⤓</button>
+          <button id="clear-events" class="btn-icon danger" title="Clear activity">✕</button>
+        </div>
+      </div>
+      <p id="refresh-status" class="refresh-status" role="status" aria-live="polite"></p>
+    </footer>
+
+    <!-- hidden theme toggle kept for preferences compat -->
+    <button id="theme-toggle" hidden aria-hidden="true"></button>
+
     <script src="popup.js"></script>
   </body>
 </html>
