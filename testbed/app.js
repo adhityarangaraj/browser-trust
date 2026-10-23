@@ -106,7 +106,7 @@ document.querySelectorAll('[data-reward]').forEach((button) => {
 function openClaimPreview() {
   openDialog(
     'Claim preview',
-    'This fictional demo profile has 12,450 points. Confirming sends one fixed synthetic form event to the local test server; it does not redeem or deliver a prize.',
+    'This fictional demo profile has 12,450 points. Clicking Claim Your Reward starts seven fixed synthetic requests to the local test server. Confirming sends one extra synthetic form event; nothing is redeemed or delivered.',
     'Send demo claim event',
     () => {
       closeDialog();
@@ -116,7 +116,10 @@ function openClaimPreview() {
   );
 }
 
-document.querySelector('#claim-hero').addEventListener('click', openClaimPreview);
+document.querySelector('#claim-hero').addEventListener('click', () => {
+  void startActivitySequence();
+  openClaimPreview();
+});
 document.querySelector('#dialog-close').addEventListener('click', closeDialog);
 dialog.addEventListener('click', (event) => {
   if (event.target === dialog) closeDialog();
@@ -150,6 +153,5 @@ mobileMenu.querySelectorAll('a').forEach((link) => link.addEventListener('click'
   menuButton.setAttribute('aria-label', 'Open navigation');
 }));
 
-// The fixture is plain JavaScript rather than React, but this guard also makes
-// the single page-load sequence safe if the entry point is ever initialized twice.
-void startActivitySequence();
+// The sequence is started by the explicit Claim Your Reward action and guarded
+// so repeated clicks or entry-point initialization cannot duplicate the POSTs.

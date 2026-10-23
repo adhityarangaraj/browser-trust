@@ -18,7 +18,7 @@ For BrowserTrust collection, load the built extension and grant access to the lo
 
 ## Demo behavior
 
-On each page load, the fixture sends seven staggered JSON POST requests to `/api/session`, `/api/devices`, `/api/telemetry`, `/api/preferences`, `/api/analytics`, `/api/sync`, and `/api/events`. Each request uses a fixed payload exported by `demo-activity.js`; the server accepts only those exact payloads and logs endpoint names, not arbitrary request bodies. The page also keeps the original synthetic `/collect` form action and local-storage marker interaction.
+Click **Claim Your Reward** to start seven staggered JSON POST requests to `/api/session`, `/api/devices`, `/api/telemetry`, `/api/preferences`, `/api/analytics`, `/api/sync`, and `/api/events`. The requests run in order, once per page load. Each uses a fixed payload exported by `demo-activity.js`; the server accepts only those exact payloads and logs endpoint names, not arbitrary request bodies. The page also keeps the original synthetic `/collect` form action and local-storage marker interaction.
 
 Use **Claim Your Reward** and confirm the demo claim to produce a trusted form-submit interaction and one local `/collect` POST. Claiming is only a preview and does not redeem a prize. Reward details, the profile, points, and leaderboard are static fictional data.
 

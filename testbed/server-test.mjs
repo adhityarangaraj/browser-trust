@@ -153,3 +153,14 @@ test('serves the browser request sequence as JavaScript', async () => {
   assert.match(response.headers.get('content-type') ?? '', /javascript/);
   assert.match(await response.text(), /\/api\/events/);
 });
+
+test('starts the request sequence from the Claim Your Reward click only', async () => {
+  const response = await fetch(`${baseUrl}/app.js`);
+  const script = await response.text();
+  const claimHandler = script.indexOf("document.querySelector('#claim-hero').addEventListener('click'");
+  const sequenceCall = script.indexOf('void startActivitySequence();');
+  assert.notEqual(claimHandler, -1);
+  assert.equal(sequenceCall, script.indexOf('void startActivitySequence();', claimHandler));
+  assert.match(script.slice(claimHandler), /^document\.querySelector\('#claim-hero'\)\.addEventListener\('click', \(\) => \{\s*void startActivitySequence\(\);\s*openClaimPreview\(\);/);
+  assert.match(script, /if \(activitySequenceStarted\) return/);
+});
